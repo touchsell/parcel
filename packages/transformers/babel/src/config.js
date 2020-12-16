@@ -239,8 +239,10 @@ function getStats(options, parcelOptions) {
   return {hasRequire, dependsOnLocal};
 }
 
+// eslint-disable-next-line
 function isLocal(configItemPath, fs) {
-  return fs.realpathSync(configItemPath) !== configItemPath;
+  return false;
+  // return fs.realpathSync(configItemPath) !== configItemPath;
 }
 
 export function preSerialize(config: Config) {
