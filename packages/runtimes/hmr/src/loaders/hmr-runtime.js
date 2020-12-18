@@ -35,6 +35,9 @@ function getPort() {
   return HMR_PORT || location.port;
 }
 
+// WebWorkers
+var hasDocument = typeof document !== 'undefined';
+
 // eslint-disable-next-line no-redeclare
 var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
@@ -53,7 +56,7 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
 
     if (data.type === 'update') {
       // Remove error overlay if there is one
-      removeErrorOverlay();
+      if (hasDocument) removeErrorOverlay();
 
       let assets = data.assets.filter(asset => asset.envHash === HMR_ENV_HASH);
 
@@ -102,10 +105,12 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
         );
       }
 
-      // Render the fancy html overlay
-      removeErrorOverlay();
-      var overlay = createErrorOverlay(data.diagnostics.html);
-      document.body.appendChild(overlay);
+      if (hasDocument) {
+        // Render the fancy html overlay
+        removeErrorOverlay();
+        var overlay = createErrorOverlay(data.diagnostics.html);
+        document.body.appendChild(overlay);
+      }
     }
   };
   ws.onerror = function(e) {
