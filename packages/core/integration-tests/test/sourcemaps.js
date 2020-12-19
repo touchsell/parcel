@@ -459,11 +459,8 @@ describe('sourcemaps', function() {
     sourceMap.addRawMappings(map);
 
     let mapData = sourceMap.getMap();
-    assert.equal(mapData.sources.length, 2);
-    assert.deepEqual(mapData.sources, [
-      './index.ts',
-      '../../../../../../node_modules/@parcel/transformer-js/src/esmodule-helpers.js',
-    ]);
+    assert.equal(mapData.sources.length, 1);
+    assert.deepEqual(mapData.sources, ['./index.ts']);
 
     let input = await inputFS.readFile(
       path.join(path.dirname(filename), map.sourceRoot, map.sources[0]),
@@ -501,12 +498,8 @@ describe('sourcemaps', function() {
     sourceMap.addRawMappings(map);
 
     let mapData = sourceMap.getMap();
-    assert.equal(mapData.sources.length, 3);
-    assert.deepEqual(mapData.sources, [
-      './index.ts',
-      './local.ts',
-      '../../../../../../node_modules/@parcel/transformer-js/src/esmodule-helpers.js',
-    ]);
+    assert.equal(mapData.sources.length, 2);
+    assert.deepEqual(mapData.sources, ['./index.ts', './local.ts']);
 
     let input = await inputFS.readFile(
       path.join(path.dirname(filename), map.sourceRoot, map.sources[0]),
@@ -957,10 +950,7 @@ describe('sourcemaps', function() {
 
     let map = mapData.map;
     assert.equal(map.file, 'index.js.map');
-    assert.deepEqual(map.sources, [
-      './index.js',
-      '../../../../../../node_modules/@parcel/transformer-js/src/esmodule-helpers.js',
-    ]);
+    assert.deepEqual(map.sources, ['./index.js']);
     assert.equal(map.sourcesContent[0], sourceContent);
   });
 
@@ -991,10 +981,7 @@ describe('sourcemaps', function() {
 
     let map = mapUrlData.map;
     assert.equal(map.file, 'index.js.map');
-    assert.deepEqual(map.sources, [
-      './index.js',
-      '../../../../../../node_modules/@parcel/transformer-js/src/esmodule-helpers.js',
-    ]);
+    assert.deepEqual(map.sources, ['./index.js']);
   });
 
   it('should respect --no-source-maps', async function() {

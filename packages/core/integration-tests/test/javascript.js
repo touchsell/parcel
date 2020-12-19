@@ -62,12 +62,7 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'index.js',
-        assets: [
-          'bundle-url.js',
-          'index.js',
-          'JSRuntime.js',
-          'esmodule-helpers.js',
-        ],
+        assets: ['bundle-url.js', 'index.js', 'JSRuntime.js'],
       },
       {
         type: 'txt',
@@ -253,13 +248,7 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'main.js',
-        assets: [
-          '_empty.js',
-          'browser.js',
-          'esmodule-helpers.js',
-          'index.js',
-          'main.js',
-        ],
+        assets: ['_empty.js', 'browser.js', 'index.js', 'main.js'],
       },
     ]);
 
@@ -279,7 +268,7 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'main.js',
-        assets: ['esmodule-helpers.js', 'main.js'],
+        assets: ['main.js'],
       },
     ]);
 
@@ -506,7 +495,7 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'index.js',
-        assets: ['esmodule-helpers.js', 'index.js'],
+        assets: ['index.js'],
       },
     ]);
   });
@@ -860,7 +849,7 @@ describe('javascript', function() {
         assets: ['worker-b.js'],
       },
       {
-        assets: ['esmodule-helpers.js', 'lodash.js'],
+        assets: ['lodash.js'],
       },
     ]);
 
@@ -898,7 +887,7 @@ describe('javascript', function() {
         assets: ['worker.js'],
       },
       {
-        assets: ['lodash.js', 'esmodule-helpers.js'],
+        assets: ['lodash.js'],
       },
     ]);
 
@@ -973,7 +962,6 @@ describe('javascript', function() {
           'index.js',
           'bundle-url.js',
           'cacheLoader.js',
-          'esmodule-helpers.js',
           'js-loader.js',
           'JSRuntime.js',
           'bundle-manifest.js',
@@ -1099,7 +1087,7 @@ describe('javascript', function() {
     );
     assertBundles(b, [
       {
-        assets: ['c.js', 'common.js', 'esmodule-helpers.js'],
+        assets: ['c.js', 'common.js'],
       },
       {
         name: 'b.js',
@@ -1121,7 +1109,6 @@ describe('javascript', function() {
           'bundle-url.js',
           'common.js',
           'cacheLoader.js',
-          'esmodule-helpers.js',
           'js-loader.js',
           'JSRuntime.js',
           'bundle-manifest.js',
@@ -1144,7 +1131,6 @@ describe('javascript', function() {
           'index.js',
           'bundle-url.js',
           'cacheLoader.js',
-          'esmodule-helpers.js',
           'js-loader.js',
           'JSRuntime.js',
           'JSRuntime.js',
@@ -1321,7 +1307,7 @@ describe('javascript', function() {
 
     assertBundles(b, [
       {
-        assets: ['a.js', 'b.js', 'c.js', 'esmodule-helpers.js'],
+        assets: ['a.js', 'b.js', 'c.js'],
       },
     ]);
 
@@ -1658,7 +1644,7 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'browser.js',
-        assets: ['browser.js', 'browser-module.js', 'esmodule-helpers.js'],
+        assets: ['browser.js', 'browser-module.js'],
       },
     ]);
 
@@ -1819,7 +1805,7 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'main-field.js',
-        assets: ['main-field.js', 'main.js', 'esmodule-helpers.js'],
+        assets: ['main-field.js', 'main.js'],
       },
     ]);
 
@@ -2353,7 +2339,6 @@ describe('javascript', function() {
           'JSRuntime.js',
           'bundle-url.js',
           'cacheLoader.js',
-          'esmodule-helpers.js',
           'js-loader.js',
           'bundle-manifest.js',
           'JSRuntime.js',
@@ -2389,11 +2374,11 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'a.js',
-        assets: ['a.js', 'esmodule-helpers.js', 'lodash.js'],
+        assets: ['a.js', 'lodash.js'],
       },
       {
         name: 'b.js',
-        assets: ['b.js', 'esmodule-helpers.js', 'lodash.js'],
+        assets: ['b.js', 'lodash.js'],
       },
     ]);
   });
@@ -2454,11 +2439,7 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'index.js',
-        assets: [
-          'index.js',
-          b.getBundles().find(b => b.isInline).id + '.js',
-          'esmodule-helpers.js',
-        ],
+        assets: ['index.js', b.getBundles().find(b => b.isInline).id + '.js'],
       },
       {
         name: 'index.css',
@@ -2678,7 +2659,6 @@ describe('javascript', function() {
           'get-dep-2.js',
           'dep.js',
           'JSRuntime.js',
-          'esmodule-helpers.js',
         ],
       },
     ]);
@@ -2704,7 +2684,6 @@ describe('javascript', function() {
           'JSRuntime.js',
           'relative-path.js',
           'same-ancestry.js',
-          'esmodule-helpers.js',
         ],
       },
       {
@@ -2734,7 +2713,6 @@ describe('javascript', function() {
           'get-dep-2.js',
           'dep.js',
           'JSRuntime.js',
-          'esmodule-helpers.js',
         ],
       },
       {
@@ -2748,7 +2726,6 @@ describe('javascript', function() {
           'JSRuntime.js',
           'JSRuntime.js',
           'relative-path.js',
-          'esmodule-helpers.js',
         ],
       },
     ]);
@@ -2801,7 +2778,6 @@ describe('javascript', function() {
           'JSRuntime.js',
           'JSRuntime.js',
           'relative-path.js',
-          'esmodule-helpers.js',
         ],
       },
     ]);
@@ -2828,10 +2804,9 @@ describe('javascript', function() {
           'JSRuntime.js',
           'JSRuntime.js',
           'relative-path.js',
-          'esmodule-helpers.js',
         ],
       },
-      {name: 'value.js', assets: ['value.js', 'esmodule-helpers.js']},
+      {name: 'value.js', assets: ['value.js']},
       {assets: ['async.js']},
     ]);
 
@@ -2856,7 +2831,6 @@ describe('javascript', function() {
           'JSRuntime.js',
           'JSRuntime.js',
           'relative-path.js',
-          'esmodule-helpers.js',
         ],
       },
       {assets: ['value.js']},
@@ -2928,7 +2902,6 @@ describe('javascript', function() {
           'JSRuntime.js',
           'JSRuntime.js',
           'relative-path.js',
-          'esmodule-helpers.js',
         ],
       },
       {
@@ -2944,7 +2917,7 @@ describe('javascript', function() {
           'relative-path.js',
         ],
       },
-      {assets: ['a.js', 'value.js', 'esmodule-helpers.js']},
+      {assets: ['a.js', 'value.js']},
       {assets: ['b.js']},
     ]);
 
@@ -3013,105 +2986,5 @@ describe('javascript', function() {
         assets: ['index.js'],
       },
     ]);
-  });
-
-  it('should support duplicate re-exports without scope hoisting', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-duplicate-re-exports/index.js'),
-    );
-    let res = await run(b);
-    assert.equal(res.a, 'a');
-    assert.equal(res.b, 'b');
-    assert.equal(typeof res.c, 'function');
-  });
-
-  it('should exclude default from export all declaration', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-export-all/index.js'),
-    );
-    let res = await run(b);
-    assert.deepEqual(res, {a: 4});
-  });
-
-  it('should support import namespace declarations of other ES modules', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-import-namespace/a.js'),
-    );
-    let res = await run(b);
-    assert.deepEqual(res, {a: 4, default: 1});
-  });
-
-  it('should support import namespace declarations of class from CJS', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-import-namespace/b.js'),
-    );
-    let res = await run(b);
-    assert.equal(typeof res, 'function');
-  });
-
-  it('should support import namespace declarations of object from CJS', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-import-namespace/c.js'),
-    );
-    let res = await run(b);
-    assert.deepEqual(res, {foo: 2, default: 3});
-  });
-
-  it('should support export namespace declarations', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-export-namespace/index.js'),
-    );
-    let res = await run(b);
-    assert.deepEqual(res, {ns: {a: 4, default: 1}});
-  });
-
-  it('should support export default declarations', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-export-default/index.js'),
-    );
-    let res = await run(b);
-    assert.deepEqual(res, {other: 1});
-  });
-
-  it('should work with many different types of exports', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-export-many/index.js'),
-    );
-    let res = await run(b);
-    assert.deepEqual(res, {
-      foo: 'foo',
-      bar: 'bar',
-      default: 'baz',
-      boo: 'boo',
-      foobar: 'foobar',
-      type1: 'type1',
-      type2: 'type2',
-    });
-  });
-
-  it('should correctly export functions', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-export-functions/index.js'),
-    );
-    let res = await run(b);
-    assert.deepEqual(Object.keys(res), ['foo', 'bar']);
-    assert.equal(res.foo('test'), 'foo:test');
-    assert.equal(res.bar('test'), 'bar:test');
-  });
-
-  it('should handle exports of imports', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-export-import/index.js'),
-    );
-    let res = await run(b);
-    assert.deepEqual(res, {other: 2});
-  });
-
-  it('should generate a unique variable name for imports', async function() {
-    let b = await bundle(
-      path.join(__dirname, 'integration/js-import-shadow/index.js'),
-    );
-    let res = await run(b);
-    assert.equal(res.baz(), 'foo');
   });
 });

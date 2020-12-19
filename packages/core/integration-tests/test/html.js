@@ -351,7 +351,7 @@ describe('html', function() {
       },
       {
         type: 'js',
-        assets: ['component-1.js', 'obj.js', 'esmodule-helpers.js'],
+        assets: ['component-1.js', 'obj.js'],
       },
       {
         type: 'js',
@@ -1431,7 +1431,7 @@ describe('html', function() {
       },
       {
         type: 'js',
-        assets: ['a.js', 'worker.js', 'esmodule-helpers.js'],
+        assets: ['a.js', 'worker.js'],
       },
       {
         type: 'js',
@@ -1439,7 +1439,6 @@ describe('html', function() {
           'a.js',
           'bundle-manifest.js',
           'bundle-url.js',
-          'esmodule-helpers.js',
           'get-worker-url.js',
           'index.js',
           'JSRuntime.js',
@@ -1473,7 +1472,7 @@ describe('html', function() {
       },
       {
         type: 'js',
-        assets: ['form.js', 'a.js', 'a.module.css', 'esmodule-helpers.js'],
+        assets: ['form.js', 'a.js', 'a.module.css'],
       },
       {
         type: 'css',
@@ -1485,13 +1484,7 @@ describe('html', function() {
       },
       {
         type: 'js',
-        assets: [
-          'searchfield.js',
-          'a.js',
-          'a.module.css',
-          'b.js',
-          'esmodule-helpers.js',
-        ],
+        assets: ['searchfield.js', 'a.js', 'a.module.css', 'b.js'],
       },
       {
         type: 'html',
@@ -1499,13 +1492,7 @@ describe('html', function() {
       },
       {
         type: 'js',
-        assets: [
-          'searchfield2.js',
-          'a.js',
-          'a.module.css',
-          'b.js',
-          'esmodule-helpers.js',
-        ],
+        assets: ['searchfield2.js', 'a.js', 'a.module.css', 'b.js'],
       },
     ]);
 

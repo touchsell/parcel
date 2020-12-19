@@ -1,18 +1,27 @@
 // @flow
 import type {Node} from '@babel/types';
-import type {SimpleVisitors, VisitorsExploded} from './types';
 
 import * as t from '@babel/types';
 import explode from './explode.js';
 import traverse from './traverse';
 
-export * from './traverse2';
-export * from './scope';
-export * from './types';
+export type Visitors<F> = {
+  [string]: F | {|enter?: F, exit?: F|},
+  shouldSkip?: Node => boolean,
+  ...
+};
+export type VisitorsExploded<F> = {
+  [string]: {|
+    enter?: Array<F>,
+    exit?: Array<F>,
+  |},
+  shouldSkip?: Node => boolean,
+  ...
+};
 
 export function simple<T>(
   node: Node,
-  _visitors: SimpleVisitors<(any, T) => void>,
+  _visitors: Visitors<(any, T) => void>,
   state: T,
 ) {
   if (!node) return;
@@ -52,7 +61,7 @@ export function simple<T>(
 
 export function ancestor<T>(
   node: Node,
-  _visitors: SimpleVisitors<(any, T, Array<Node>) => void>,
+  _visitors: Visitors<(any, T, Array<Node>) => void>,
   state: T,
 ) {
   if (!node) return;
@@ -100,7 +109,7 @@ export function ancestor<T>(
 
 export function recursive<T>(
   node: Node,
-  _visitors: SimpleVisitors<(any, T, recurse: (Node) => void) => void>,
+  _visitors: Visitors<(any, T, recurse: (Node) => void) => void>,
   state: T,
 ) {
   if (!node) return;

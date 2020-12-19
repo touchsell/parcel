@@ -1,6 +1,6 @@
 // @flow
 import type {Node} from '@babel/types';
-import type {SimpleVisitors, VisitorsExploded} from './index';
+import type {Visitors, VisitorsExploded} from './index';
 
 import * as t from '@babel/types';
 import invariant from 'assert';
@@ -46,7 +46,7 @@ class Path {
 
 export default function traverse<T>(
   node: Node,
-  visitors: SimpleVisitors<(Path, T) => void>,
+  visitors: Visitors<(Path, T) => void>,
   state: T,
 ) {
   traverseWalk(explode(visitors), state, node, null, null, null);

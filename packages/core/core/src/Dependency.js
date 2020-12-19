@@ -21,7 +21,6 @@ type DependencyOpts = {|
   loc?: SourceLocation,
   env: Environment,
   meta?: Meta,
-  resolveFrom?: string,
   target?: Target,
   symbols?: Map<
     Symbol,
