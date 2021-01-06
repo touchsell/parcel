@@ -123,6 +123,7 @@ export class FS implements Iterable<[string, File | FSMap]> {
 const HMR_OPTIONS: $Shape<REPLOptions> = {
   mode: 'development',
   hmr: true,
+  scopeHoist: false,
 };
 
 export const ASSET_PRESETS: Map<

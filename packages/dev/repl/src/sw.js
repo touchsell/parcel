@@ -74,6 +74,8 @@ self.addEventListener('message', evt => {
   }
 });
 
+let encodeUTF8 = new TextEncoder('utf-8');
+
 self.addEventListener('fetch', evt => {
   let url = new URL(evt.request.url);
   let {clientId} = evt;
@@ -99,7 +101,7 @@ self.addEventListener('fetch', evt => {
               type,
               data: JSON.stringify(data),
             });
-            controller.enqueue(Uint8Array.from(chunk, x => x.charCodeAt(0)));
+            controller.enqueue(encodeUTF8.encode(chunk));
           });
         },
       });
@@ -114,9 +116,7 @@ self.addEventListener('fetch', evt => {
           },
         }),
       );
-      return;
-    }
-    if (url.pathname.startsWith('/__repl_dist/')) {
+    } else if (url.pathname.startsWith('/__repl_dist/')) {
       let filename = url.pathname.slice('/__repl_dist/'.length);
       let file = pages.get(parentId)?.[filename];
       if (file == null) {
@@ -132,7 +132,6 @@ self.addEventListener('fetch', evt => {
           },
         }),
       );
-      return;
     }
   }
 });
