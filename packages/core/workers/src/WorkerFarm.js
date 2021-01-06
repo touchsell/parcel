@@ -294,10 +294,10 @@ export default class WorkerFarm extends EventEmitter {
     } else if (location) {
       // $FlowFixMe
       if (process.browser) {
-        if (location.endsWith('@parcel/workers/src/bus.js')) {
+        if (location === '@parcel/workers/src/bus.js') {
           mod = bus;
         } else {
-          throw new Error('No dynamic require possible');
+          throw new Error('No dynamic require possible: ' + location);
         }
       } else {
         // $FlowFixMe this must be dynamic
