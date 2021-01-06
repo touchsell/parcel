@@ -1,5 +1,5 @@
 // @flow
-import type {Assets, REPLOptions} from '../utils';
+import type {FS, REPLOptions} from '../utils';
 import type {BundleOutput} from './ParcelWorker';
 
 import {proxy, wrap, transfer} from 'comlink';
@@ -9,8 +9,9 @@ const worker = wrap(
 );
 
 // const worker = {
+//   waitForFS: () => Promise.resolve(),
 //   ready: Promise.resolve(),
-//   bundle(assets, options): Promise<BundleOutput> {
+//   bundle(assets, options, progress): Promise<BundleOutput> {
 //     return Promise.resolve({
 //       type: 'success',
 //       bundles: assets.map(({name, content}) => ({
@@ -35,6 +36,13 @@ const worker = wrap(
 //       sourcemaps: null,
 //     });
 //   },
+//   watch(...args) {
+//     return Promise.resolve({
+//       unsubscribe: () => Promise.resolve(),
+//       writeAssets: () => Promise.resolve(args),
+//     });
+//   },
+//   setServiceWorker: v => v,
 // };
 
 export const workerReady: Promise<void> = worker.ready;
@@ -44,23 +52,32 @@ export function waitForFS(): Promise<void> {
 }
 
 export function bundle(
-  assets: Assets,
+  files: FS,
   options: REPLOptions,
   progress: string => void,
 ): Promise<BundleOutput> {
-  return worker.bundle(assets, options, proxy(progress));
+  return worker.bundle(files.toJSON(), options, proxy(progress));
 }
 
-export function watch(
-  assets: Assets,
+export async function watch(
+  files: FS,
   options: REPLOptions,
   onBuild: BundleOutput => void,
   progress: (?string) => void,
 ): Promise<{|
   unsubscribe: () => Promise<mixed>,
-  writeAssets: Assets => Promise<mixed>,
+  writeAssets: FS => Promise<mixed>,
 |}> {
-  return worker.watch(assets, options, proxy(onBuild), proxy(progress));
+  let result = await worker.watch(
+    files.toJSON(),
+    options,
+    proxy(onBuild),
+    proxy(progress),
+  );
+  return {
+    unsubscribe: result.unsubscribe,
+    writeAssets: f => result.writeAssets(f.toJSON()),
+  };
 }
 
 class MessageTarget {

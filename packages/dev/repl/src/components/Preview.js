@@ -4,13 +4,9 @@
 // eslint-disable-next-line no-unused-vars
 import {h, Fragment} from 'preact';
 import {useRef, useState} from 'preact/hooks';
-import {Box, usePromise} from './helper';
+import {usePromise} from './helper';
 
-export default function Preview({
-  clientID,
-}: {|
-  clientID: Promise<string>,
-|}): any {
+export function Preview({clientID}: {|clientID: Promise<string>|}): any {
   let [clientIDResolved] = usePromise(clientID);
   let url =
     clientIDResolved && `/__repl_dist/index.html?parentId=${clientIDResolved}`;
@@ -23,43 +19,49 @@ export default function Preview({
   return (
     url && (
       <div class="preview">
-        {!popover && (
-          <button
-            onClick={() => {
-              let w = window.open(url);
-              // window.open(url, '_blank', 'toolbar=0,location=0,menubar=0'),
-              setPopover(w);
-              w.onload = function() {
-                this.onbeforeunload = function() {
-                  setPopover(null);
+        <div class="controls">
+          {!popover && (
+            <button
+              onClick={() => {
+                let w = window.open(url);
+                // window.open(url, '_blank', 'toolbar=0,location=0,menubar=0'),
+                setPopover(w);
+                w.onload = function() {
+                  this.onbeforeunload = function() {
+                    setPopover(null);
+                  };
                 };
-              };
-            }}
-            disabled={!url}
-          >
-            Move to new window
-          </button>
-        )}
-        {popover && (
-          <button
-            onClick={() => {
-              popover.close();
-              setPopover(null);
-            }}
-            disabled={!url}
-          >
-            Close popover
-          </button>
-        )}
+              }}
+              disabled={!url}
+            >
+              Move to new window
+            </button>
+          )}
+          {popover && (
+            <button
+              onClick={() => {
+                popover.close();
+                setPopover(null);
+              }}
+              disabled={!url}
+            >
+              Close popover
+            </button>
+          )}
+          {!popover && (
+            <button
+              class="reload"
+              // $FlowFixMe
+              onClick={() => (iframeRef.current.src = url)}
+            >
+              Reload
+            </button>
+          )}
+        </div>
         {!popover && (
-          <button class="reload" onClick={() => (iframeRef.current.src = url)}>
-            Reload
-          </button>
-        )}
-        {!popover && (
-          <Box>
-            <iframe ref={iframeRef} src={url} />
-          </Box>
+          //<Box>
+          <iframe ref={iframeRef} src={url} />
+          //</Box>
         )}
       </div>
     )

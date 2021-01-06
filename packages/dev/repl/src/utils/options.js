@@ -2,6 +2,7 @@
 import type {PackageJSON} from '@parcel/types';
 
 export type REPLOptions = {|
+  entries: [],
   minify: boolean,
   scopeHoist: boolean,
   sourceMaps: boolean,

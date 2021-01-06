@@ -172,7 +172,7 @@ export default (new Resolver({
     let key = keyStartsWith(FILES, dependency.moduleSpecifier);
     if (key != null) {
       return {
-        filePath: '/app/VIRTUAL.js',
+        filePath: `/app/VIRTUAL${key.replace(/\//g, '-')}.js`,
         // filePath: '/VIRTUAL/' + key,
         code: nullthrows(FILES.get(key)),
       };

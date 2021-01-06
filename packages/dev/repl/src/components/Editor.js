@@ -2,7 +2,7 @@
 // @jsx h
 // eslint-disable-next-line no-unused-vars
 import {h} from 'preact';
-import {useMemo} from 'preact/hooks';
+import {useCallback, useMemo} from 'preact/hooks';
 import {memo} from 'preact/compat';
 import path from 'path';
 
@@ -12,7 +12,7 @@ import {
   keymap,
   highlightSpecialChars,
   drawSelection,
-  // highlightActiveLine,
+  highlightActiveLine,
 } from '@codemirror/view';
 import {EditorState} from '@codemirror/state';
 import {history, historyKeymap} from '@codemirror/history';
@@ -35,6 +35,7 @@ import {javascript} from '@codemirror/lang-javascript';
 import {css} from '@codemirror/lang-css';
 import {json} from '@codemirror/lang-json';
 
+const CONFIG_FILE = /^\.\w*rc$/;
 const Editor: any = memo(function Editor({
   filename,
   readOnly,
@@ -59,7 +60,7 @@ const Editor: any = memo(function Editor({
         closeBrackets(),
         autocompletion(),
         rectangularSelection(),
-        // highlightActiveLine(),
+        highlightActiveLine(),
         highlightSelectionMatches(),
         oneDark,
         keymap.of([
@@ -82,14 +83,17 @@ const Editor: any = memo(function Editor({
             run: indentLess,
           },
         ]),
-        extension.includes('js') || extension.includes('ts')
-          ? javascript()
+        extension === 'json' || CONFIG_FILE.test(path.basename(filename))
+          ? json()
+          : extension.startsWith('js') || extension.startsWith('ts')
+          ? javascript({
+              jsx: extension.endsWith('x'),
+              typescript: extension.includes('ts'),
+            })
           : extension === 'html'
           ? html()
           : extension === 'css'
           ? css()
-          : extension === 'json' || filename === '.parcelrc'
-          ? json()
           : null,
       ].filter(Boolean),
     [extension],
@@ -106,4 +110,27 @@ const Editor: any = memo(function Editor({
   );
 });
 
-export default Editor;
+function EditorWrapper({
+  dispatch,
+  name,
+  value,
+  readOnly,
+  diagnostics,
+}: any): any {
+  let onChange = useCallback(
+    value => dispatch({type: 'view.setValue', name, value}),
+    [dispatch, name],
+  );
+
+  return (
+    <Editor
+      filename={name}
+      content={value}
+      onChange={onChange}
+      readOnly={readOnly}
+      diagnostics={diagnostics}
+    />
+  );
+}
+
+export {EditorWrapper as Editor};

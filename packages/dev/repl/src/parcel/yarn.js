@@ -41,7 +41,7 @@ export async function yarnInstall(
 ) {
   let dependencies = options.dependencies;
   if (await fs.exists('/app/package.json')) {
-    let pkg = await fs.readFile('/app/package.json');
+    let pkg = await fs.readFile('/app/package.json', 'utf8');
     let deps = JSON.parse(pkg).dependencies;
     if (deps) {
       // $FlowFixMe

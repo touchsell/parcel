@@ -1,6 +1,6 @@
 // @flow
 import type {Diagnostic} from '@parcel/diagnostic';
-import type {Assets, CodeMirrorDiagnostic, REPLOptions} from '../utils';
+import type {FSList, CodeMirrorDiagnostic, REPLOptions} from '../utils';
 import type {MemoryFS} from '@parcel/fs';
 
 import {expose, proxy} from 'comlink';
@@ -56,7 +56,7 @@ global.PARCEL_SERVICE_WORKER = async (type, data) => {
 expose({
   bundle,
   watch,
-  ready: new Promise(res => workerFarm.once('ready', () => res())),
+  ready: new Promise(res => workerFarm.once('ready', () => res(true))),
   waitForFS: () => proxy(swFSPromise),
   setServiceWorker: v => {
     sw = v;
@@ -69,7 +69,7 @@ const PathUtils = {
   DIST_DIR: '/app/dist',
   CACHE_DIR: '/.parcel-cache',
   fromAssetPath(str) {
-    return '/app/' + str;
+    return path.join('/app', str);
   },
   toAssetPath(str) {
     return str.startsWith('/app/') ? str.slice(5) : str;
@@ -150,8 +150,8 @@ async function setup(assets, options) {
 
   // TODO only create new instance if options/entries changed
   let entries = assets
-    .filter(a => a.isEntry)
-    .map(a => PathUtils.fromAssetPath(a.name));
+    .filter(([, data]) => data.isEntry)
+    .map(([name]) => PathUtils.fromAssetPath(name));
   const bundler = new Parcel({
     entries,
     // https://github.com/parcel-bundler/parcel/pull/4290
@@ -192,6 +192,8 @@ async function collectResult(result, graphs, fs) {
       });
     }
 
+    bundleContents.sort(({name: a}, {name: b}) => a.localeCompare(b));
+
     return {
       type: 'success',
       bundles: bundleContents,
@@ -207,7 +209,7 @@ async function collectResult(result, graphs, fs) {
   }
 }
 
-async function syncAssetsToFS(assets: Assets, options: REPLOptions) {
+async function syncAssetsToFS(assets: FSList, options: REPLOptions) {
   await fs.mkdirp('/app');
 
   let filesToKeep = new Set([
@@ -215,15 +217,15 @@ async function syncAssetsToFS(assets: Assets, options: REPLOptions) {
     '/app/node_modules',
     '/app/yarn.lock',
     '/app/package.json',
-    ...assets.map(({name}) => PathUtils.fromAssetPath(name)),
+    ...assets.map(([name]) => PathUtils.fromAssetPath(name)),
   ]);
 
-  for (let {name, content} of assets) {
+  for (let [name, {value}] of assets) {
     if (name === 'package.json') continue;
     let p = PathUtils.fromAssetPath(name);
     await fs.mkdirp(path.dirname(p));
-    if (!(await fs.exists(p)) || (await fs.readFile(p, 'utf8')) !== content) {
-      await fs.writeFile(p, content);
+    if (!(await fs.exists(p)) || (await fs.readFile(p, 'utf8')) !== value) {
+      await fs.writeFile(p, value);
     }
   }
 
@@ -231,7 +233,7 @@ async function syncAssetsToFS(assets: Assets, options: REPLOptions) {
     ? await fs.readFile('/app/package.json', 'utf8')
     : null;
   let newPackageJson =
-    assets.find(({name}) => name === 'package.json')?.content ??
+    assets.find(([name]) => name === '/package.json')?.[1].value ??
     generatePackageJson(options);
 
   if (!oldPackageJson || oldPackageJson.trim() !== newPackageJson.trim()) {
@@ -248,7 +250,7 @@ async function syncAssetsToFS(assets: Assets, options: REPLOptions) {
 }
 
 async function bundle(
-  assets: Assets,
+  assets: FSList,
   options: REPLOptions,
   progress: string => void,
 ): Promise<BundleOutput> {
@@ -279,7 +281,7 @@ async function bundle(
       : null,
   ]);
 
-  const {bundler, graphs} = await setup(assets, options);
+  const {bundler, graphs} = await setup(assets, {...options, hmr: false});
 
   resetSWPromise();
   await syncAssetsToFS(assets, options);
@@ -325,13 +327,13 @@ async function bundle(
 }
 
 async function watch(
-  assets: Assets,
+  assets: FSList,
   options: REPLOptions,
   onBuild: BundleOutput => void,
   progress: (?string) => void,
 ): Promise<{|
   unsubscribe: () => Promise<mixed>,
-  writeAssets: Assets => Promise<mixed>,
+  writeAssets: FSList => Promise<mixed>,
 |}> {
   const reporterEvents = new EventTarget();
   // $FlowFixMe

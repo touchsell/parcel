@@ -1,45 +1,35 @@
 // @flow
 // @jsx h
-/* eslint-disable import/first */
-if (process.env.NODE_ENV === 'development') {
-  require('preact/debug');
-}
-import type {Assets, REPLOptions} from './utils';
-import type {BundleOutput} from './parcel/ParcelWorker';
-
+// @jsxFrag Fragment
+/* eslint-disable react/jsx-no-bind */
 // eslint-disable-next-line no-unused-vars
 import {h, render, Fragment} from 'preact';
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useReducer,
-  useRef,
-} from 'preact/hooks';
-import {memo} from 'preact/compat';
-import Asset from './components/Asset';
-import SourceMapVisualiser from './components/SourceMapVisualiser';
-import Options, {DEFAULT_OPTIONS} from './components/Options';
-import {
-  Graphs,
-  Notes,
-  ParcelError,
-  Tabs,
-  useDebounce,
-  useSessionStorage,
-  usePromise,
-} from './components/helper';
-import Preview from './components/Preview';
+import {useEffect, useMemo, useState, useReducer, useRef} from 'preact/hooks';
 
-import filesize from 'filesize';
+// $FlowFixMe
+import parcelLogo from 'url:./assets/logo.svg';
+// $FlowFixMe
+import parcelText from 'url:./assets/parcel.png';
+
 import {
-  assetsReducer,
-  ASSET_PRESETS,
-  generatePackageJson,
-  loadState,
-  saveState,
-  // downloadBuffer
-} from './utils';
+  Editor,
+  FileBrowser,
+  Notes,
+  Options,
+  ParcelError,
+  PresetSelector,
+  Preview,
+  Tabs,
+  Graphs,
+  useDebounce,
+  useKeyboard,
+  usePromise,
+  useSessionStorage,
+} from './components/';
+import {saveState, reducer, getInitialState} from './utils';
+import type {State} from './utils';
+import filesize from 'filesize';
+
 import {
   bundle,
   watch,
@@ -48,406 +38,339 @@ import {
   clientID as clientIDPromise,
 } from './parcel/';
 
-const READY = Symbol('READY');
-const BUNDLING_RUNNING = Symbol('BUNDLING_RUNNING');
-const BUNDLING_FINISHED = Symbol('BUNDLING_FINISHED');
-const WATCHING_READY = Symbol('WATCHING_READY');
-const WATCHING_RUNNING = Symbol('WATCHING_RUNNING');
-const WATCHING_FINISHED = Symbol('WATCHING_FINISHED');
+const STATUS_LOADING = Symbol('STATUS_LOADING');
+const STATUS_RUNNING = Symbol('STATUS_RUNNING');
+const STATUS_IDLING = Symbol('STATUS_IDLING');
 
-function isWatching(s: Symbol) {
+function Status({watching, status, buildProgress, buildOutput}) {
+  let buildDuration =
+    buildOutput?.buildTime != null
+      ? Math.round(buildOutput?.buildTime / 10) / 100
+      : null;
+
+  let text, color;
+  if (status === STATUS_LOADING) {
+    text = 'Loading...';
+    color = '#553701';
+  } else if (status === STATUS_IDLING) {
+    if (watching) {
+      if (buildDuration != null) {
+        text = `Watching... (last build took ${buildDuration}s)`;
+      } else {
+        text = 'Watching...';
+      }
+    } else {
+      if (buildDuration != null) {
+        text = `Finished in ${buildDuration}s`;
+      } else {
+        text = 'Ready';
+      }
+    }
+    color = '#015551';
+    // TODO: errors + "finished in 123s"
+  } else if (status === STATUS_RUNNING) {
+    if (buildProgress) {
+      text = 'Running: ' + buildProgress;
+    } else {
+      text = 'Running...';
+    }
+    color = 'black';
+  }
+
   return (
-    s === WATCHING_READY || s === WATCHING_RUNNING || s === WATCHING_FINISHED
+    <div class="status" style={{backgroundColor: color}}>
+      {text}
+    </div>
   );
 }
 
-function isRunning(s: Symbol) {
-  return s === BUNDLING_RUNNING || s === WATCHING_RUNNING;
-}
-
-const WORKER_STATE_LOADING = Symbol('WORKER_STATE_LOADING');
-const WORKER_STATE_SUCCESS = Symbol('WORKER_STATE_SUCCESS');
-
-const DEFAULT_PRESET = 'Javascript';
-
-function optionsReducer(options, {name, value}) {
-  return {
-    ...options,
-    [name]: value,
-  };
-}
-optionsReducer.update = (name, value) => ({name, value});
-
-const initialHashState = loadState() || {};
-function App() {
-  const [assets, setAssets]: [Assets, Function] = useReducer(
-    assetsReducer,
-    initialHashState.assets || ASSET_PRESETS[DEFAULT_PRESET],
+function Output({state, dispatch}: {|state: State, dispatch: Function|}) {
+  let [watching, setWatching] = useState(false);
+  let [buildState, setBuildState] = useState(STATUS_LOADING);
+  let [buildOutput, setBuildOutput] = useState(null);
+  let [buildProgress, setBuildProgress] = useState(null);
+  let [outputTabIndex, setOutputTabIndex] = useSessionStorage(
+    'outputTabIndex',
+    0,
   );
-  const [assetDiagnostics, setAssetDiagnostics] = useState(new Map());
-  const [options, setOptions]: [REPLOptions, Function] = useReducer(
-    optionsReducer,
-    initialHashState.options || DEFAULT_OPTIONS,
-  );
+  let watchSubscriptionRef = useRef(null);
 
-  const [currentPreset, setCurrentPreset]: [
-    string,
-    (string) => void,
-  ] = useState(initialHashState.currentPreset || DEFAULT_PRESET);
-
-  const [bundlingState, setBundlingState] = useState(READY);
-  const [bundlingStateInfo, setBundlingStateInfo] = useState(null);
-  const [workerState, setWorkerState] = useState(WORKER_STATE_LOADING);
   useEffect(async () => {
     await workerReady;
-    setWorkerState(WORKER_STATE_SUCCESS);
-  }, []);
-  const [output, setOutput]: [
-    ?BundleOutput,
-    (?BundleOutput) => void,
-  ] = useState();
-
-  const [installPrompt, setInstallPrompt] = useState(null);
-
-  const assetsDebounced = useDebounce(assets, 500);
-  useEffect(() => {
-    saveState(currentPreset, options, assetsDebounced);
-  }, [currentPreset, options, assetsDebounced]);
-  // const hashChangeCb = useCallback(() => {
-  //  let state = loadState();
-  //  if (state) {
-  //    console.log(state)
-  //    setAssets(state.assets);
-  //    setOptions(state.options);
-  //    setCurrentPreset(state.currentPreset);
-  //  }
-  // }, []);
-  // useEffect(() => {
-  //  window.addEventListener("hashchange", hashChangeCb);
-  //  return () => window.removeEventListener("hashchange", hashChangeCb);
-  // }, []);
-
-  const watchSubscriptionRef = useRef();
-
-  const assetsDebouncedWatch = useDebounce(assets, 200);
-  useEffect(() => {
-    if (watchSubscriptionRef.current) {
-      watchSubscriptionRef.current.writeAssets(assetsDebouncedWatch);
-      setBundlingState(WATCHING_RUNNING);
-    }
-  }, [assetsDebouncedWatch]);
-
-  const toggleWatching = useCallback(async () => {
-    if (watchSubscriptionRef.current) {
-      watchSubscriptionRef.current.unsubscribe();
-      watchSubscriptionRef.current = false;
-      setBundlingState(READY);
-    } else {
-      setBundlingState(WATCHING_RUNNING);
-      let {unsubscribe, writeAssets} = await watch(
-        assets,
-        options,
-        bundleOutput => {
-          setBundlingState(WATCHING_FINISHED);
-          setOutput(bundleOutput);
-          if (bundleOutput.type === 'failure' && bundleOutput.diagnostics) {
-            setAssetDiagnostics(bundleOutput.diagnostics);
-          } else {
-            setAssetDiagnostics(new Map());
-          }
-        },
-        v => {
-          setBundlingStateInfo(v);
-        },
-      );
-      watchSubscriptionRef.current = {unsubscribe, writeAssets};
-    }
+    setBuildState(STATUS_IDLING);
   }, []);
 
-  let [clientID] = usePromise(clientIDPromise);
+  async function build() {
+    setBuildState(STATUS_RUNNING);
 
-  let [tabIndex, setTabIndex] = useSessionStorage('tabIndex', 0);
-
-  const startBundling = useCallback(async () => {
-    if (bundlingState === BUNDLING_RUNNING) return;
-    setBundlingState(BUNDLING_RUNNING);
-    setBundlingStateInfo(null);
+    setBuildProgress(null);
 
     try {
-      const bundleOutput = await bundle(assets, options, v => {
-        setBundlingStateInfo(v);
-      });
+      const output = await bundle(state.files, state.options, setBuildProgress);
 
-      setBundlingState(BUNDLING_FINISHED);
-      setOutput(bundleOutput);
-      if (bundleOutput.type === 'failure' && bundleOutput.diagnostics) {
-        setAssetDiagnostics(bundleOutput.diagnostics);
-      } else {
-        setAssetDiagnostics(new Map());
-      }
+      setBuildOutput(output);
+      dispatch({
+        type: 'diagnostics',
+        value:
+          output.type === 'failure' && output.diagnostics
+            ? new Map(
+                [...output.diagnostics]
+                  .filter(([name]) => name)
+                  .map(([name, data]) => ['/' + name, data]),
+              )
+            : null,
+      });
     } catch (error) {
       console.error('Unexpected error', error);
     }
-  }, [bundlingState, assets, options]);
 
-  const keydownCb = useCallback(
-    e => {
-      if (e.metaKey) {
-        if (e.code === 'Enter' || e.code === 'KeyB') {
-          e.preventDefault();
-          startBundling();
-        } else if (e.code === 'KeyS') {
-          e.preventDefault();
-          // if (output) downloadZip();
-        }
-      }
-    },
-    [startBundling],
-  );
+    setBuildState(STATUS_IDLING);
+  }
 
-  const beforeinstallpromptCb = useCallback(e => {
-    e.preventDefault();
-    setInstallPrompt(e);
-  }, []);
+  async function toggleWatch() {
+    if (watchSubscriptionRef.current) {
+      watchSubscriptionRef.current.unsubscribe();
+      watchSubscriptionRef.current = null;
+      setWatching(false);
+    } else {
+      setWatching(true);
+      setBuildState(STATUS_RUNNING);
+      let {unsubscribe, writeAssets} = await watch(
+        state.files,
+        state.options,
+        output => {
+          setBuildState(STATUS_IDLING);
+          setBuildOutput(output);
+          dispatch({
+            type: 'diagnostics',
+            value:
+              output.type === 'failure' && output.diagnostics
+                ? new Map(
+                    [...output.diagnostics]
+                      .filter(([name]) => name)
+                      .map(([name, data]) => ['/' + name, data]),
+                  )
+                : null,
+          });
+        },
+        setBuildProgress,
+      );
+      watchSubscriptionRef.current = {unsubscribe, writeAssets};
+    }
+  }
 
   useEffect(() => {
-    document.addEventListener('keydown', keydownCb);
-    window.addEventListener('beforeinstallprompt', beforeinstallpromptCb);
-    return () => {
-      document.removeEventListener('keydown', keydownCb);
-      window.removeEventListener('beforeinstallprompt', beforeinstallpromptCb);
-    };
-  }, [beforeinstallpromptCb, keydownCb]);
-
-  const changePresetCb = useCallback(e => {
-    setOutput(null);
-    setCurrentPreset(e.target.value);
-    setAssets(assetsReducer.setAssets(ASSET_PRESETS[e.target.value]));
-    setBundlingState(READY);
-  }, []);
-
-  const changeAssetNameCb = useCallback(
-      (name, newName) => setAssets(assetsReducer.changeName(name, newName)),
-      [],
-    ),
-    changeAssetContentCb = useCallback(
-      (name, content) => setAssets(assetsReducer.changeContent(name, content)),
-      [],
-    ),
-    changeAssetEntryCb = useCallback(
-      (name, isEntry) => setAssets(assetsReducer.changeEntry(name, isEntry)),
-      [],
-    ),
-    removeAssetCb = useCallback(
-      name => setAssets(assetsReducer.remove(name)),
-      [],
-    ),
-    addAssetCb = useCallback(() => setAssets(assetsReducer.add()), []),
-    changeOptionsCb = useCallback(
-      (name, value) => setOptions(optionsReducer.update(name, value)),
-      [],
-    );
-
-  const promptInstallCb = useCallback(async () => {
-    installPrompt.prompt();
-
-    const result = await this.state.installPrompt.userChoice;
-    if (result.outcome === 'accepted') {
-      setInstallPrompt(null);
+    if (watchSubscriptionRef.current) {
+      watchSubscriptionRef.current.writeAssets(state.files);
+      setBuildState(STATUS_RUNNING);
     }
-  }, []);
+  }, [state.files]);
+
+  useKeyboard(
+    e => {
+      if (
+        e.metaKey &&
+        e.code === 'KeyB' &&
+        !watching &&
+        buildState !== STATUS_RUNNING
+      ) {
+        build();
+        e.preventDefault();
+      }
+    },
+    [build, buildState, watching],
+  );
+
+  let [clientID] = usePromise(clientIDPromise);
 
   return (
-    <div id="app">
-      <div class="column">
-        <PresetSelector
-          currentPreset={currentPreset}
-          changePresetCb={changePresetCb}
-        />
-        {assets.map(({name, content, isEntry}, i) => (
-          <Asset
-            key={i}
-            name={name}
-            onChangeName={changeAssetNameCb}
-            content={content}
-            onChangeContent={changeAssetContentCb}
-            isEntry={isEntry}
-            onChangeEntry={changeAssetEntryCb}
-            onClickRemove={removeAssetCb}
-            diagnostics={assetDiagnostics.get(name)}
-          />
-        ))}
-        {assets.every(a => a.name !== 'package.json') && (
-          <Asset
-            name="package.json"
-            content={generatePackageJson(options)}
-            readOnly
-            // diagnostics={diagnostics}
-            class="packageJson"
-          />
-        )}
-        <button class="addAsset" onClick={addAssetCb}>
-          Add asset
-        </button>
+    <div class="output">
+      <Status
+        watching={watching}
+        status={buildState}
+        buildProgress={buildProgress}
+        buildOutput={buildOutput}
+      />
+      <div class="header">
         <button
-          class="start"
-          disabled={bundlingState === BUNDLING_RUNNING}
-          onClick={startBundling}
+          disabled={watching || buildState !== STATUS_IDLING}
+          onClick={build}
         >
-          Bundle
+          Build
         </button>
-        <button class="start" onClick={toggleWatching}>
-          {isWatching(bundlingState) ? 'Stop watching' : 'Watch'}
+        <button disabled={buildState !== STATUS_IDLING} onClick={toggleWatch}>
+          {watching ? 'Stop watching' : 'Watch'}
         </button>
-        <Options
-          values={options}
-          onChange={changeOptionsCb}
-          disabled={isWatching(bundlingState)}
-          disablePackageJSON={assets.some(a => a.name === 'package.json')}
-        />
-        <Notes />
       </div>
-      <div class="column">
-        <StatusIndicator
-          bundlingState={bundlingState}
-          bundlingStateInfo={bundlingStateInfo}
-          workerState={workerState}
-          buildDuration={output?.type === 'success' && output.buildTime}
-        />
-        {(() => {
-          if (output) {
-            if (output.type === 'success') {
-              return (
-                <Tabs
-                  names={['Output', 'Preview']}
-                  selected={tabIndex}
-                  setSelected={setTabIndex}
-                >
-                  <div class="column">
-                    {output.bundles.map(({name, content, size}) => (
-                      <Asset
-                        key={name}
-                        name={name.trim()}
-                        content={content}
-                        additionalHeader={
-                          <div class="outputSize">{filesize(size)}</div>
-                        }
-                        readOnly
-                      />
-                    ))}
-                    {output.graphs && <Graphs graphs={output.graphs} />}
-                    {output.sourcemaps && (
-                      <SourceMapVisualiser maps={output.sourcemaps} />
-                    )}
-                    {/* <button disabled onClick={downloadZip}>
-                      Download ZIP
-                    </button> */}
+      <div class="files">
+        {buildOutput?.type === 'success' && (
+          <Tabs
+            names={['Output', 'Preview']}
+            selected={outputTabIndex}
+            setSelected={setOutputTabIndex}
+          >
+            <div>
+              <div class="views">
+                {buildOutput.bundles.map(({name, size, content}) => (
+                  <div key={name} class="view">
+                    <div class="name">
+                      <span />
+                      <span>{name}</span>
+                      <span>{filesize(size)}</span>
+                    </div>
+                    <Editor name={name} value={content} readOnly />
                   </div>
-                  <div>
-                    {clientID && (
-                      <Preview clientID={waitForFS().then(() => clientID)} />
-                    )}
-                  </div>
-                </Tabs>
-              );
-            } else {
-              // TODO always show preview, even with errors. this should only replace the bundle output.
-              return <ParcelError error={output} />;
-            }
-          } else {
-            return (
-              <div class="file gettingStarted">
-                <div>
-                  Click on{' '}
-                  <button
-                    class="start"
-                    disabled={bundlingState === BUNDLING_RUNNING}
-                    onClick={startBundling}
-                  >
-                    Bundle
-                  </button>{' '}
-                  to get started!
-                </div>
+                ))}
               </div>
-            );
-          }
-        })()}
-        {installPrompt && (
-          <button class="installPrompt" onClick={promptInstallCb} disabled>
-            Want to add this to your homescreen?
-          </button>
+              {buildOutput?.graphs && <Graphs graphs={buildOutput.graphs} />}
+            </div>
+            <Preview clientID={waitForFS().then(() => clientID)} />
+          </Tabs>
+        )}
+        {buildOutput?.type === 'failure' && (
+          <ParcelError output={buildOutput} />
         )}
       </div>
     </div>
   );
 }
 
-function StatusIndicator({
-  bundlingState,
-  bundlingStateInfo,
-  workerState,
-  buildDuration,
-}) {
-  let text;
-
-  buildDuration = Math.round(buildDuration / 10) / 100;
-
-  if (workerState === WORKER_STATE_LOADING) {
-    text = 'Starting up Parcel...';
-  } else {
-    switch (bundlingState) {
-      case BUNDLING_RUNNING:
-        text = `Running: ${bundlingStateInfo ?? ''}`;
-        break;
-      case BUNDLING_FINISHED:
-        text = `Finished (took ${buildDuration}s)`;
-        break;
-      case WATCHING_READY:
-        text = 'Watching';
-        break;
-      case WATCHING_RUNNING:
-        text = `Watching: ${bundlingStateInfo ?? ''}`;
-        break;
-      case WATCHING_FINISHED:
-        text = `Watching (took ${buildDuration}s)`;
-        break;
-      default:
-        text = 'Parcel is ready';
-        break;
+function Editors({state, dispatch}) {
+  const views = [...state.views];
+  const names = views.map(([name, data]) => (
+    // $FlowFixMe
+    <>
+      <span></span>
+      <span>{name}</span>
+      <button
+        class={data.value !== state.files.get(name)?.value && 'modified'}
+        onClick={() => dispatch({type: 'view.close', name})}
+      ></button>
+    </>
+  ));
+  const children = views.map(([name, data]) => {
+    if (data.component) {
+      let Comp = data.component;
+      return <Comp key={name} state={state} dispatch={dispatch} />;
+    } else {
+      return (
+        <Editor
+          key={name}
+          dispatch={dispatch}
+          name={name}
+          value={data.value}
+          diagnostics={state.diagnostics.get(name)}
+        />
+      );
     }
-  }
+  });
 
-  let classState;
-  if (workerState === WORKER_STATE_LOADING) {
-    classState = 'loading';
-  } else if (isWatching(bundlingState)) {
-    classState = 'watching';
+  if (state.useTabs) {
+    return (
+      <Tabs
+        names={names}
+        class="editors"
+        mode="hide"
+        selected={state.currentView}
+        setSelected={i => dispatch({type: 'view.select', index: i})}
+        fallback={<Notes />}
+      >
+        {children}
+      </Tabs>
+    );
   } else {
-    classState = !isRunning(bundlingState) ? 'ready' : 'loading';
+    let merged = [];
+    for (let i = 0; i < views.length; i++) {
+      merged.push(
+        // $FlowFixMe
+        <div class="view">
+          <div class="name">{names[i]}</div>
+          <div class="content">{children[i]}</div>
+        </div>,
+      );
+    }
+    return (
+      <div class="editors">
+        {merged}
+        {children.length === 0 && <Notes />}
+      </div>
+    );
   }
-
-  return <div class={`loadState ${classState}`}>{text}</div>;
 }
 
-const PresetSelector = memo(
-  function PresetSelector({currentPreset, changePresetCb}) {
-    return (
-      <label class="presets">
-        <span>Preset:</span>
-        <select onChange={changePresetCb} value={currentPreset}>
-          {Object.keys(ASSET_PRESETS).map(v => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </label>
-    );
-  },
-  (prevProps, nextProps) => {
-    return prevProps.currentPreset === nextProps.currentPreset;
-  },
-);
+function App() {
+  let [state, dispatch] = useReducer(reducer, null, getInitialState);
+
+  useDebounce(() => saveState(state), 500, [state.files, state.options]);
+
+  useKeyboard(
+    e => {
+      if (e.metaKey && e.code === 'KeyS') {
+        dispatch({type: 'view.saveCurrent'});
+        e.preventDefault();
+      } else if (e.ctrlKey && e.code === 'KeyW') {
+        dispatch({type: 'view.closeCurrent'});
+        e.preventDefault();
+      }
+    },
+    [dispatch],
+  );
+
+  return (
+    // $FlowFixMe
+    <>
+      <main>
+        <FileBrowser
+          files={state.files}
+          expanded={state.browserExpanded}
+          dispatch={dispatch}
+          isEditing={state.isEditing}
+        >
+          <header>
+            <a href="/">
+              <img
+                class="parcel"
+                src={parcelText}
+                height="30"
+                style="margin-top: 5px;"
+                alt=""
+              />
+              <img class="type" src={parcelLogo} style="width: 120px;" alt="" />
+              <span style="font-size: 25px;">REPL</span>
+            </a>
+          </header>
+          <PresetSelector dispatch={dispatch} />
+          <div class="options">
+            <button
+              class="options"
+              onClick={() =>
+                dispatch({
+                  type: 'view.open',
+                  name: 'Options',
+                  component: Options,
+                })
+              }
+            >
+              Options
+            </button>
+            <button
+              class={'view ' + (state.useTabs ? 'tabs' : '')}
+              onClick={() =>
+                dispatch({
+                  type: 'toggleView',
+                })
+              }
+            >
+              <span></span>
+            </button>
+          </div>
+        </FileBrowser>
+        <Editors state={state} dispatch={dispatch} />
+        <Output state={state} dispatch={dispatch} />
+      </main>
+    </>
+  );
+}
 
 render(<App />, document.getElementById('root'));
 

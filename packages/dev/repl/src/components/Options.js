@@ -1,41 +1,35 @@
 // @flow
 // @jsx h
 /* eslint-disable react/jsx-no-bind */
-import type {REPLOptions} from '../utils';
+import type {REPLOptions, State} from '../utils';
 
 // eslint-disable-next-line no-unused-vars
 import {h} from 'preact';
-import {memo} from 'preact/compat';
 import {getDefaultTargetEnv} from '../utils';
 
-export const DEFAULT_OPTIONS: REPLOptions = {
-  minify: false,
-  scopeHoist: true,
-  sourceMaps: false,
-  publicUrl: '/__repl_dist',
-  targetType: 'browsers',
-  targetEnv: null,
-  outputFormat: null,
-  hmr: false,
-  mode: 'production',
-  renderGraphs: false,
-  viewSourcemaps: false,
-  dependencies: [],
-};
-
-function Options({
-  values,
-  onChange,
+export function Options({
+  state,
+  dispatch,
   disabled = false,
-  disablePackageJSON = false,
 }: {|
-  values: REPLOptions,
-  onChange: ($Keys<REPLOptions>, mixed) => void,
+  state: State,
+  dispatch: ({|
+    type: 'options',
+    name: $Keys<REPLOptions>,
+    value: mixed,
+  |}) => void,
   disabled: ?boolean,
-  disablePackageJSON: ?boolean,
 |}): any {
+  const values: REPLOptions = state.options;
+  const onChange = (name: $Keys<REPLOptions>, value: mixed) =>
+    dispatch({type: 'options', name, value});
+
+  // TODO disabled when watching
+
+  const disablePackageJSON = state.files.has('/package.json');
+
   return (
-    <div class="options file">
+    <div class="options">
       <label title="Corresponds to `--no-source-maps`">
         <span>Source Maps</span>
         <input
@@ -229,10 +223,3 @@ function Options({
     </div>
   );
 }
-
-export default (memo(Options, (prevProps, nextProps) => {
-  for (let p in nextProps) {
-    if (prevProps[p] !== nextProps[p]) return false;
-  }
-  return true;
-}): typeof Options);
