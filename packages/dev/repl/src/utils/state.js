@@ -269,6 +269,7 @@ export function saveState(state: State) {
     useTabs: state.useTabs,
     browserExpanded: [...state.browserExpanded],
     views: [...state.views.keys()],
+    currentView: state.currentView,
   };
 
   window.location.hash = btoa(encodeURIComponent(JSON.stringify(data)));
@@ -291,6 +292,7 @@ export function loadState(): ?State {
       ),
       options: data.options,
       useTabs: data.useTabs,
+      currentView: data.currentView,
       browserExpanded: new Set(data.browserExpanded),
     };
   } catch (e) {

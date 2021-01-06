@@ -314,27 +314,48 @@ document.body.append(document.createTextNode(func()))`,
       ]),
     },
   ],
-  //   Envfile: [
-  //     {
-  //       name: 'src/index.js',
-  //       content: 'console.log(process.env.SOMETHING);',
-  //       isEntry: true,
-  //     },
-  //     {name: '.env', content: 'SOMETHING=124'},
-  //   ],
-  //   Typescript: [
-  //     {
-  //       name: 'src/index.ts',
-  //       content: `function greeter(person: string) {
-  //     return "Hello, " + person;
-  // }
+  [
+    'Envfile',
+    {
+      fs: new Map([
+        [
+          'src',
+          new Map([
+            [
+              'index.js',
+              {value: 'console.log(process.env.SOMETHING);', isEntry: true},
+            ],
+          ]),
+        ],
+        ['.env', {value: 'SOMETHING=124'}],
+      ]),
+    },
+  ],
+  [
+    'Typescript',
+    {
+      fs: new Map([
+        [
+          'src',
+          new Map([
+            [
+              'index.ts',
+              {
+                value: `function greeter(person: string) {
+  return "Hello, " + person;
+}
 
-  // let user = "Jane User";
+let user = "Jane User";
 
-  // document.body.innerHTML = greeter(user);`,
-  //       isEntry: true,
-  //     },
-  //   ],
+document.body.innerHTML = greeter(user);`,
+                isEntry: true,
+              },
+            ],
+          ]),
+        ],
+      ]),
+    },
+  ],
   //   parcelrc: [
   //     {
   //       name: 'src/index.js',
@@ -563,7 +584,6 @@ export function App() {
       ]),
     },
   ],
-
   //   Markdown: [
   //     {
   //       name: 'src/Article.md',
