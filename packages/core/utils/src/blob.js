@@ -3,7 +3,7 @@
 import type {Blob} from '@parcel/types';
 
 import {Buffer} from 'buffer';
-import {bufferStream} from '../';
+import {bufferStream} from './';
 import {Readable} from 'stream';
 
 export function blobToBuffer(blob: Blob): Promise<typeof Buffer> {
