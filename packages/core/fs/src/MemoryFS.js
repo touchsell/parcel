@@ -666,7 +666,7 @@ export class FSError extends Error {
     this.name = 'FSError';
     this.code = code;
     this.path = path;
-    Error.captureStackTrace(this, this.constructor);
+    Error.captureStackTrace?.(this, this.constructor);
   }
 }
 
