@@ -26,8 +26,8 @@ import {
   usePromise,
   useSessionStorage,
 } from './components/';
-import {saveState, reducer, getInitialState} from './utils';
-import type {State} from './utils';
+import {saveState, reducer, getInitialState} from './components';
+import type {State} from './components';
 import filesize from 'filesize';
 
 import {
@@ -96,9 +96,10 @@ function Output({state, dispatch}: {|state: State, dispatch: Function|}) {
   let watchSubscriptionRef = useRef(null);
 
   useEffect(async () => {
-    await workerReady;
+    setBuildState(STATUS_LOADING);
+    await workerReady(state.options.numWorkers);
     setBuildState(STATUS_IDLING);
-  }, []);
+  }, [state.options.numWorkers]);
 
   async function build() {
     setBuildState(STATUS_RUNNING);

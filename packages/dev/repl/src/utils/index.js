@@ -1,7 +1,6 @@
 // @flow
 export * from './assets';
 export * from './options';
-export * from './state';
 
 export function nthIndex(str: string, pat: string, n: number): number {
   var length = str.length,

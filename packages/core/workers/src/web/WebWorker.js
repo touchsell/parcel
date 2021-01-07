@@ -45,9 +45,8 @@ export default class WebWorker implements WorkerImpl {
   }
 
   stop(): Promise<void> {
-    // In node 12, this returns a promise, but previously it accepted a callback
-    // TODO: Pass a callback in earlier versions of Node
-    return Promise.resolve(this.worker.terminate());
+    this.worker.terminate();
+    return Promise.resolve();
   }
 
   handleMessage(data: WorkerMessage) {

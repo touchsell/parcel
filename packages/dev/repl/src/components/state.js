@@ -1,9 +1,11 @@
 // @flow
 import type {REPLOptions, CodeMirrorDiagnostic} from '../utils';
 
-import {ASSET_PRESETS, FS, join} from './assets';
+import {ASSET_PRESETS, FS, join} from '../utils/assets';
 import path from 'path';
 import nullthrows from 'nullthrows';
+
+const isSafari = navigator.vendor.includes('Apple Computer');
 
 export const DEFAULT_OPTIONS: REPLOptions = {
   entries: [],
@@ -19,6 +21,7 @@ export const DEFAULT_OPTIONS: REPLOptions = {
   renderGraphs: false,
   viewSourcemaps: false,
   dependencies: [],
+  numWorkers: isSafari ? 0 : null,
 };
 
 export type State = {|

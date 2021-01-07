@@ -45,7 +45,9 @@ const worker = wrap(
 //   setServiceWorker: v => v,
 // };
 
-export const workerReady: Promise<void> = worker.ready;
+export function workerReady(numWorkers: ?number): Promise<void> {
+  return worker.ready(numWorkers);
+}
 
 export function waitForFS(): Promise<void> {
   return worker.waitForFS();

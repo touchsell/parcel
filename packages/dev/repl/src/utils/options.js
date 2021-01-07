@@ -15,6 +15,7 @@ export type REPLOptions = {|
   renderGraphs: boolean,
   viewSourcemaps: boolean,
   dependencies: Array<[string, string]>,
+  numWorkers: ?number,
 |};
 
 export function getDefaultTargetEnv(

@@ -35,7 +35,24 @@ export type BundleOutput =
       diagnostics: Map<string, Array<CodeMirrorDiagnostic>>,
     |};
 
-const workerFarm = createWorkerFarm();
+let workerFarm;
+let fs: MemoryFS;
+function startWorkerFarm(numWorkers: ?number) {
+  // $FlowFixMe
+  if (!workerFarm || workerFarm.maxConcurrentWorkers != numWorkers) {
+    workerFarm?.end();
+    // $FlowFixMe
+    workerFarm = createWorkerFarm(
+      numWorkers != null ? {maxConcurrentWorkers: numWorkers} : {},
+    );
+    fs = new ExtendedMemoryFS(workerFarm);
+    fs.chdir('/app');
+
+    // $FlowFixMe
+    globalThis.fs = fs;
+    globalThis.workerFarm = workerFarm;
+  }
+}
 
 let swFSPromise, resolveSWFSPromise;
 function resetSWPromise() {
@@ -56,7 +73,15 @@ global.PARCEL_SERVICE_WORKER = async (type, data) => {
 expose({
   bundle,
   watch,
-  ready: new Promise(res => workerFarm.once('ready', () => res(true))),
+  ready: numWorkers =>
+    new Promise(res => {
+      startWorkerFarm(numWorkers);
+      if (workerFarm.readyWorkers === workerFarm.options.maxConcurrentWorkers) {
+        res(true);
+      } else {
+        workerFarm.once('ready', () => res(true));
+      }
+    }),
   waitForFS: () => proxy(swFSPromise),
   setServiceWorker: v => {
     sw = v;
@@ -125,11 +150,6 @@ async function convertDiagnostics(inputFS, diagnostics: Array<Diagnostic>) {
   }
   return parsedDiagnostics;
 }
-
-const fs: MemoryFS = new ExtendedMemoryFS(workerFarm);
-fs.chdir('/app');
-// $FlowFixMe
-globalThis.fs = fs;
 
 async function setup(assets, options) {
   if (!(await fs.exists('/.parcelrc'))) {
