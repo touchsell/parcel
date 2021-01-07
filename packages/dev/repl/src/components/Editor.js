@@ -48,7 +48,7 @@ const Editor: any = memo(function Editor({
   const extensions = useMemo(
     () =>
       [
-        lineNumbers(),
+        !readOnly && lineNumbers(),
         highlightSpecialChars(),
         history(),
         foldGutter(),

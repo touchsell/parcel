@@ -69,7 +69,7 @@ self.addEventListener('message', evt => {
   } else if (type === 'getID') {
     evt.source.postMessage({id, data: clientId});
   } else if (type === 'hmrUpdate') {
-    sendToIFrame.get(parentToIframe.get(clientId))?.(null, data);
+    sendToIFrame.get(parentToIframe.get(clientId))?.(data);
     evt.source.postMessage({id});
   }
 });
@@ -96,11 +96,8 @@ self.addEventListener('fetch', evt => {
     ) {
       let stream = new ReadableStream({
         start: controller => {
-          sendToIFrame.set(clientId, (type, data) => {
-            let chunk = sseChunkData({
-              type,
-              data: JSON.stringify(data),
-            });
+          sendToIFrame.set(clientId, data => {
+            let chunk = `data: ${JSON.stringify(data)}\n\n`;
             controller.enqueue(encodeUTF8.encode(chunk));
           });
         },
@@ -135,15 +132,6 @@ self.addEventListener('fetch', evt => {
     }
   }
 });
-
-function sseChunkData({event, data, retry, id}) {
-  return (
-    Object.entries({event, id, data, retry})
-      .filter(([, value]) => value != null)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join('\n') + '\n\n'
-  );
-}
 
 function extname(filename) {
   return filename.slice(filename.lastIndexOf('.') + 1);

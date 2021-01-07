@@ -18,7 +18,7 @@ function FileBrowserEntry({
   directory = false,
   isEntry,
   isEditing,
-  expanded,
+  collapsed,
   children,
   dispatch,
   ...rest
@@ -34,7 +34,7 @@ function FileBrowserEntry({
       {...rest}
     >
       <div
-        class={directory ? `dir ${expanded ? 'expanded' : ''}` : 'file'}
+        class={directory ? `dir ${!collapsed ? 'expanded' : ''}` : 'file'}
         onClick={() =>
           directory
             ? dispatch({
@@ -49,7 +49,7 @@ function FileBrowserEntry({
         // tabIndex="0"
         // onDblclick={(e) => console.log(e)}
       >
-        <div>
+        <div class="name">
           <div class="icon" />
           <EditableField
             value={name}
@@ -107,7 +107,7 @@ function FileBrowserEntry({
 
 function FileBrowserFolder({
   files,
-  expanded,
+  collapsed,
   dispatch,
   isEditing,
   prefix = '',
@@ -119,6 +119,7 @@ function FileBrowserFolder({
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([name, data]) => {
           let p = join(prefix, name);
+          let isCollapsed = collapsed.has(p);
           return data instanceof Map ? (
             <FileBrowserEntry
               key={name}
@@ -127,7 +128,7 @@ function FileBrowserFolder({
               prefix={prefix}
               dispatch={dispatch}
               isEditing={isEditing}
-              expanded={expanded.has(p)}
+              collapsed={isCollapsed}
               onDrop={e => {
                 const data = e.dataTransfer.getData(
                   'application/x-parcel-repl-file',
@@ -144,10 +145,10 @@ function FileBrowserFolder({
               }}
               onDragOver={e => e.preventDefault()}
             >
-              {expanded.has(p) && (
+              {!isCollapsed && (
                 <FileBrowserFolder
                   files={data}
-                  expanded={expanded}
+                  collapsed={collapsed}
                   dispatch={dispatch}
                   isEditing={isEditing}
                   prefix={p}
@@ -171,7 +172,7 @@ function FileBrowserFolder({
 
 export function FileBrowser({
   files,
-  expanded,
+  collapsed,
   isEditing,
   dispatch,
   children,
@@ -199,7 +200,7 @@ export function FileBrowser({
       </div>
       <FileBrowserFolder
         files={files}
-        expanded={expanded}
+        collapsed={collapsed}
         isEditing={isEditing}
         dispatch={dispatch}
         onDrop={e => {

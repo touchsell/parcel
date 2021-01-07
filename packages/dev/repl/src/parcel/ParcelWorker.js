@@ -221,7 +221,7 @@ async function syncAssetsToFS(assets: FSList, options: REPLOptions) {
   ]);
 
   for (let [name, {value}] of assets) {
-    if (name === 'package.json') continue;
+    if (name === '/package.json') continue;
     let p = PathUtils.fromAssetPath(name);
     await fs.mkdirp(path.dirname(p));
     if (!(await fs.exists(p)) || (await fs.readFile(p, 'utf8')) !== value) {

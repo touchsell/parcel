@@ -47,7 +47,9 @@ export function generatePackageJson(options: REPLOptions): string {
       app,
     },
     dependencies: Object.fromEntries(
-      options.dependencies.filter(([a, b]) => a && b),
+      options.dependencies
+        .filter(([a, b]) => a && b)
+        .sort(([a], [b]) => a.localeCompare(b)),
     ),
   };
 

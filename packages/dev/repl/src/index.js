@@ -4,7 +4,7 @@
 /* eslint-disable react/jsx-no-bind */
 // eslint-disable-next-line no-unused-vars
 import {h, render, Fragment} from 'preact';
-import {useEffect, useMemo, useState, useReducer, useRef} from 'preact/hooks';
+import {useEffect, useState, useReducer, useRef} from 'preact/hooks';
 
 // $FlowFixMe
 import parcelLogo from 'url:./assets/logo.svg';
@@ -322,7 +322,7 @@ function App() {
       <main>
         <FileBrowser
           files={state.files}
-          expanded={state.browserExpanded}
+          collapsed={state.browserCollapsed}
           dispatch={dispatch}
           isEditing={state.isEditing}
         >

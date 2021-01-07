@@ -25,7 +25,7 @@ export type State = {|
   currentView: number,
   files: FS,
   views: Map<string, {|value: string|} | {|component: any|}>,
-  browserExpanded: Set<string>,
+  browserCollapsed: Set<string>,
   isEditing: null | string,
   options: REPLOptions,
   useTabs: boolean,
@@ -36,7 +36,7 @@ export const initialState: State = {
   currentView: 0,
   files: new FS(),
   views: new Map(),
-  browserExpanded: new Set(),
+  browserCollapsed: new Set(),
   isEditing: null,
   options: DEFAULT_OPTIONS,
   useTabs: true,
@@ -90,7 +90,7 @@ export function reducer(state: State, action: any): State {
       };
     case 'view.setValue': {
       let data = nullthrows(state.views.get(action.name));
-      if (!data.value) {
+      if (data.component) {
         return state;
       }
       return {
@@ -148,9 +148,9 @@ export function reducer(state: State, action: any): State {
       let oldName = action.name;
       let newName = join(action.dir, path.basename(action.name));
       console.log(
-        state.browserExpanded,
+        state.browserCollapsed,
         new Set(
-          [...state.browserExpanded].map(f =>
+          [...state.browserCollapsed].map(f =>
             f === action.name ? newName : f,
           ),
         ),
@@ -158,8 +158,8 @@ export function reducer(state: State, action: any): State {
       return {
         ...state,
         files: state.files.move(oldName, newName),
-        browserExpanded: new Set(
-          [...state.browserExpanded].map(f =>
+        browserCollapsed: new Set(
+          [...state.browserCollapsed].map(f =>
             f === action.name ? newName : f,
           ),
         ),
@@ -208,9 +208,9 @@ export function reducer(state: State, action: any): State {
     case 'browser.expandToggle': {
       return {
         ...state,
-        browserExpanded: state.browserExpanded.has(action.name)
-          ? new Set([...state.browserExpanded].filter(n => n != action.name))
-          : new Set([...state.browserExpanded, action.name]),
+        browserCollapsed: state.browserCollapsed.has(action.name)
+          ? new Set([...state.browserCollapsed].filter(n => n != action.name))
+          : new Set([...state.browserCollapsed, action.name]),
       };
     }
     case 'browser.setEditing': {
@@ -220,8 +220,8 @@ export function reducer(state: State, action: any): State {
         state = {
           ...state,
           files: state.files.move(oldName, newName),
-          browserExpanded: new Set(
-            [...state.browserExpanded].map(f => (f === oldName ? newName : f)),
+          browserCollapsed: new Set(
+            [...state.browserCollapsed].map(f => (f === oldName ? newName : f)),
           ),
           views: new Map(
             [...state.views].map(([name, data]) => [
@@ -246,11 +246,13 @@ export function reducer(state: State, action: any): State {
           [action.name]: action.value,
         },
       };
-    case 'toggleView':
+    case 'toggleView': {
+      let useTabs = !state.useTabs;
       return {
         ...state,
-        useTabs: !state.useTabs,
+        useTabs,
       };
+    }
     case 'diagnostics': {
       return {
         ...state,
@@ -267,7 +269,7 @@ export function saveState(state: State) {
     files: state.files.toJSON(),
     options: state.options,
     useTabs: state.useTabs,
-    browserExpanded: [...state.browserExpanded],
+    browserCollapsed: [...state.browserCollapsed],
     views: [...state.views.keys()],
     currentView: state.currentView,
   };
@@ -293,7 +295,7 @@ export function loadState(): ?State {
       options: data.options,
       useTabs: data.useTabs,
       currentView: data.currentView,
-      browserExpanded: new Set(data.browserExpanded),
+      browserCollapsed: new Set(data.browserCollapsed),
     };
   } catch (e) {
     // eslint-disable-next-line no-console

@@ -516,13 +516,13 @@ import {
   ActionButton,
   AlertDialog,
   DialogTrigger,
-  lightTheme
+  defaultTheme
 } from "@adobe/react-spectrum";
 export function App() {
   let [name, setName] = React.useState("");
   let [email, setEmail] = React.useState("");
   return (
-    <Provider theme={lightTheme}>
+    <Provider theme={defaultTheme}>
       <Form maxWidth="size-3600">
         <TextField
           label="Name"
@@ -570,10 +570,10 @@ export function App() {
                   app: {},
                 },
                 dependencies: {
+                  '@adobe/react-spectrum': 'latest',
                   react: 'latest',
                   'react-dom': 'latest',
                   'react-refresh': 'latest',
-                  '@adobe/react-spectrum': 'latest',
                 },
               },
               null,

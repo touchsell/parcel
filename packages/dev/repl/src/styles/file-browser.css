@@ -66,8 +66,19 @@
   background: var(--background-dark);
 }
 
+.file-browser li > div > .name {
+  display: flex;
+  flex: 1;
+}
+.file-browser li > div > .name form {
+  flex: 1;
+}
+.file-browser li > div > .name form input {
+  width: 100%;
+}
 .file-browser li > div > .controls {
   display: inline;
+  flex-shrink: 0;
 }
 
 .file-browser li > div > .controls button {
@@ -95,7 +106,7 @@
 
 .file-browser li > .file .icon {
   display: inline-block;
-  vertical-align: middle;
+  margin: auto 0;
   width: 16px;
   height: 16px;
   background: url(../assets/file.svg) 50% no-repeat;
