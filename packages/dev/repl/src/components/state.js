@@ -295,7 +295,7 @@ export function loadState(): ?State {
           .map(name => [name, files.get(name)])
           .filter(([, data]) => data),
       ),
-      options: data.options,
+      options: {...data.options, numWorkers: DEFAULT_OPTIONS.numWorkers},
       useTabs: data.useTabs,
       currentView: data.currentView,
       browserCollapsed: new Set(data.browserCollapsed),

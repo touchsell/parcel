@@ -3,6 +3,10 @@
 addEventListener('install', () => self.skipWaiting());
 addEventListener('activate', evt => evt.waitUntil(self.clients.claim()));
 
+let isSafari =
+  /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+let lastHMRStream;
+
 let sendToIFrame = new Map();
 let pages = new Map();
 let parentToIframe = new Map();
@@ -19,46 +23,46 @@ const MIME = new Map([
   ['css', 'text/css'],
 ]);
 
-// TODO figure out which script is the entry
-function htmlWrapperForJS(script) {
-  return `<script type="application/javascript">
-window.console = {
-  log: function() {
-    var content = Array.from(arguments)
-      .map(v => (typeof v === "object" ? JSON.stringify(v) : v))
-      .join(" ");
-    document
-      .getElementById("output")
-      .appendChild(document.createTextNode(content + "\\n"));
-  },
-  warn: function() {
-    console.log.apply(console, arguments);
-  },
-  info: function() {
-    console.log.apply(console, arguments);
-  },
-  error: function() {
-    console.log.apply(console, arguments);
-  }
-};
-window.onerror = function(e) {
-  console.error(e.message);
-  console.error(e.stack);
-}
-</script>
-<body>
-Console output:<br>
-<div id="output" style="font-family: monospace;white-space: pre-wrap;"></div>
-</body>
-<script type="application/javascript">
-// try{
-${script}
-// } catch(e){
+// // TODO figure out which script is the entry
+// function htmlWrapperForJS(script) {
+//   return `<script type="application/javascript">
+// window.console = {
+//   log: function() {
+//     var content = Array.from(arguments)
+//       .map(v => (typeof v === "object" ? JSON.stringify(v) : v))
+//       .join(" ");
+//     document
+//       .getElementById("output")
+//       .appendChild(document.createTextNode(content + "\\n"));
+//   },
+//   warn: function() {
+//     console.log.apply(console, arguments);
+//   },
+//   info: function() {
+//     console.log.apply(console, arguments);
+//   },
+//   error: function() {
+//     console.log.apply(console, arguments);
+//   }
+// };
+// window.onerror = function(e) {
 //   console.error(e.message);
 //   console.error(e.stack);
 // }
-</script>`;
-}
+// </script>
+// <body>
+// Console output:<br>
+// <div id="output" style="font-family: monospace;white-space: pre-wrap;"></div>
+// </body>
+// <script type="application/javascript">
+// // try{
+// ${script}
+// // } catch(e){
+// //   console.error(e.message);
+// //   console.error(e.stack);
+// // }
+// </script>`;
+// }
 
 self.addEventListener('message', evt => {
   let clientId = evt.source.id;
@@ -69,7 +73,8 @@ self.addEventListener('message', evt => {
   } else if (type === 'getID') {
     evt.source.postMessage({id, data: clientId});
   } else if (type === 'hmrUpdate') {
-    sendToIFrame.get(parentToIframe.get(clientId))?.(data);
+    let send = sendToIFrame.get(parentToIframe.get(clientId)) ?? lastHMRStream;
+    send?.(data);
     evt.source.postMessage({id});
   }
 });
@@ -88,6 +93,9 @@ self.addEventListener('fetch', evt => {
   } else {
     parentId = iframeToParent.get(evt.clientId);
   }
+  if (!parentId && isSafari) {
+    parentId = [...pages.keys()].slice(-1)[0];
+  }
 
   if (parentId != null) {
     if (
@@ -96,10 +104,12 @@ self.addEventListener('fetch', evt => {
     ) {
       let stream = new ReadableStream({
         start: controller => {
-          sendToIFrame.set(clientId, data => {
+          let cb = data => {
             let chunk = `data: ${JSON.stringify(data)}\n\n`;
             controller.enqueue(encodeUTF8.encode(chunk));
-          });
+          };
+          sendToIFrame.set(clientId, cb);
+          lastHMRStream = cb;
         },
       });
 
