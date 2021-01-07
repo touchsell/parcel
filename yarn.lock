@@ -2116,10 +2116,10 @@
   resolved "https://registry.yarnpkg.com/@mischnic/pako/-/pako-1.0.10.tgz#887f4df17450c15eae90cb35d9d2e787b19c6aaf"
   integrity sha512-KdC+M963ugqgV7VmMlckoszTpr5AQ+gXsdDP/wVRiU6TSG/ljPJmd5o0FF5STg4NQ+a5W1o5Q4x9pm511i364A==
 
-"@mischnic/yarn-browser@^0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@mischnic/yarn-browser/-/yarn-browser-0.0.2.tgz#6c3d89df324dd5de4ec70587585a8fad2baf63b5"
-  integrity sha512-nwB50gWILILkMKJ+YO/bQ1oK/C+dR12RjyJRNhKRSljT7dN7FAY0SU80+wHdmT8LmmxUwamcCtMHW9nOEajWAQ==
+"@mischnic/yarn-browser@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@mischnic/yarn-browser/-/yarn-browser-0.0.3.tgz#09cc83137721d63d739c143e02fd4b8ead950d4c"
+  integrity sha512-z17p5gIx5VzyBQ+wc+3Do2mu8hwvElU3Qyh86NaDS/bfB28/yfYZsB8QIusIDxnmi7MyE1zvN4m/kx0lm92ZSg==
   dependencies:
     "@msgpack/msgpack" "^2.3.0"
     assert "^2.0.0"
