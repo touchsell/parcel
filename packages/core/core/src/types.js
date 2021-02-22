@@ -222,14 +222,14 @@ export type Edge<TEdgeType: string | null> = {|
 |};
 
 export interface Node {
-  id: string;
+  id: NodeId;
   +type: string;
   // $FlowFixMe
   value: any;
 }
 
 export type AssetNode = {|
-  id: string,
+  id: NodeId,
   +type: 'asset',
   value: Asset,
   usedSymbols: Set<Symbol>,
@@ -240,7 +240,7 @@ export type AssetNode = {|
 |};
 
 export type DependencyNode = {|
-  id: string,
+  id: NodeId,
   type: 'dependency',
   value: Dependency,
   complete?: boolean,
@@ -259,7 +259,7 @@ export type DependencyNode = {|
   excluded: boolean,
 |};
 
-export type RootNode = {|id: string, +type: 'root', value: string | null|};
+export type RootNode = {|id: NodeId, +type: 'root', value: string | null|};
 
 export type AssetRequestInput = {|
   name?: string, // AssetGraph name, needed so that different graphs can isolated requests since the results are not stored
@@ -282,7 +282,7 @@ export type AssetGroup = $Rest<
   {|optionsRef: SharedReference|},
 >;
 export type AssetGroupNode = {|
-  id: string,
+  id: NodeId,
   +type: 'asset_group',
   value: AssetGroup,
   correspondingRequest?: string,
@@ -304,19 +304,19 @@ export type TransformationRequest = {|
 |};
 
 export type DepPathRequestNode = {|
-  id: string,
+  id: NodeId,
   +type: 'dep_path_request',
   value: Dependency,
 |};
 
 export type AssetRequestNode = {|
-  id: string,
+  id: NodeId,
   +type: 'asset_request',
   value: AssetRequestInput,
 |};
 
 export type EntrySpecifierNode = {|
-  id: string,
+  id: NodeId,
   +type: 'entry_specifier',
   value: ModuleSpecifier,
   correspondingRequest?: string,
@@ -329,7 +329,7 @@ export type Entry = {|
 |};
 
 export type EntryFileNode = {|
-  id: string,
+  id: NodeId,
   +type: 'entry_file',
   value: Entry,
   correspondingRequest?: string,
@@ -352,6 +352,12 @@ export type BundleGraphNode =
   | BundleGroupNode
   | BundleNode;
 
+export type ConfigRequestNode = {|
+  id: NodeId,
+  +type: 'config_request',
+  value: ConfigRequestDesc,
+|};
+
 export type Config = {|
   id: string,
   isSource: boolean,
@@ -366,7 +372,7 @@ export type Config = {|
 |};
 
 export type DepVersionRequestNode = {|
-  id: string,
+  id: NodeId,
   +type: 'dep_version_request',
   value: DepVersionRequestDesc,
 |};
@@ -383,13 +389,13 @@ export type EntryRequest = {|
 |};
 
 export type EntryRequestNode = {|
-  id: string,
+  id: NodeId,
   +type: 'entry_request',
   value: string,
 |};
 
 export type TargetRequestNode = {|
-  id: string,
+  id: NodeId,
   +type: 'target_request',
   value: FilePath,
 |};
@@ -424,13 +430,13 @@ export type Bundle = {|
 |};
 
 export type BundleNode = {|
-  id: string,
+  id: NodeId,
   +type: 'bundle',
   value: Bundle,
 |};
 
 export type BundleGroupNode = {|
-  id: string,
+  id: NodeId,
   +type: 'bundle_group',
   value: BundleGroup,
 |};
