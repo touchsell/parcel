@@ -117,7 +117,7 @@ export default async function applyRuntimes({
   for (let {bundle, assetGroup, dependency, isEntry} of connections) {
     let assetGroupNode = nodeFromAssetGroup(assetGroup);
     let assetGroupAssetNodeIds = runtimesAssetGraph.getNodeIdsConnectedFrom(
-      runtimesAssetGraph.getNodeIdByContentKey(assetGroupNode),
+      runtimesAssetGraph.getNodeIdByContentKey(assetGroupNode.id),
     );
     invariant(assetGroupAssetNodeIds.length === 1);
     let runtimeNodeId = assetGroupAssetNodeIds[0];
@@ -130,6 +130,10 @@ export default async function applyRuntimes({
         dependencyToInternalDependency(dependency),
         bundle,
       );
+
+    let runtimesGraphRuntimeNodeId = runtimesGraph._graph.getNodeIdByContentKey(
+      runtimeNode.id,
+    );
     let duplicatedAssetIds: Set<NodeId> = new Set();
     runtimesGraph._graph.traverse((nodeId, _, actions) => {
       let node = nullthrows(runtimesGraph._graph.getNode(nodeId));
@@ -154,9 +158,9 @@ export default async function applyRuntimes({
           actions.skipChildren();
         }
       }
-    }, runtimeNodeId);
+    }, runtimesGraphRuntimeNodeId);
 
-    let bundleNodeId = runtimesGraph._graph.getNodeIdByContentKey(bundle.id);
+    let bundleNodeId = bundleGraph._graph.getNodeIdByContentKey(bundle.id);
     let bundleGraphRuntimeNodeId = bundleGraph._graph.getNodeIdByContentKey(
       runtimeNode.id,
     ); // the node id is not constant between graphs
@@ -174,7 +178,7 @@ export default async function applyRuntimes({
         ); // the node id is not constant between graphs
         bundleGraph._graph.addEdge(bundleNodeId, bundleGraphNodeId, 'contains');
       }
-    }, runtimeNodeId);
+    }, runtimesGraphRuntimeNodeId);
 
     if (isEntry) {
       bundleGraph._graph.addEdge(bundleNodeId, bundleGraphRuntimeNodeId);

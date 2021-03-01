@@ -323,21 +323,23 @@ export default class BundleGraph {
       bundleNodeId != null &&
       this._graph.hasEdge(bundleNodeId, depNodeId, 'internal_async')
     ) {
-      let referencedAssetNodeId = this._graph.getNodeIdsConnectedFrom(
+      let referencedAssetNodeIds = this._graph.getNodeIdsConnectedFrom(
         depNodeId,
         'references',
-      )[0];
+      );
 
       let resolved;
-      if (referencedAssetNodeId == null) {
+      if (referencedAssetNodeIds.length === 0) {
         resolved = this.getDependencyResolution(dependency, bundle);
-      } else {
-        let referencedAssetNode = nullthrows(
-          this._graph.getNode(referencedAssetNodeId),
+      } else if (referencedAssetNodeIds.length === 1) {
+        let referencedAssetNode = this._graph.getNode(
+          referencedAssetNodeIds[0],
         );
         // If a referenced asset already exists, resolve this dependency to it.
-        invariant(referencedAssetNode.type === 'asset');
+        invariant(referencedAssetNode?.type === 'asset');
         resolved = referencedAssetNode.value;
+      } else {
+        throw new Error('Dependencies can only reference one asset');
       }
 
       if (resolved == null) {
@@ -883,6 +885,7 @@ export default class BundleGraph {
     visit: GraphVisitor<AssetNode | DependencyNode, TContext>,
   ): ?TContext {
     let entries = true;
+    let bundleNodeId = this._graph.getNodeIdByContentKey(bundle.id);
 
     // A modified DFS traversal which traverses entry assets in the same order
     // as their ids appear in `bundle.entryAssetIds`.
@@ -890,19 +893,19 @@ export default class BundleGraph {
       visit: mapVisitor((nodeId, actions) => {
         let node = nullthrows(this._graph.getNode(nodeId));
 
-        if (node.id === bundle.id) {
+        if (nodeId === bundleNodeId) {
           return;
         }
 
         if (node.type === 'dependency' || node.type === 'asset') {
-          if (this._graph.hasEdge(bundle.id, node.id, 'contains')) {
+          if (this._graph.hasEdge(bundleNodeId, nodeId, 'contains')) {
             return node;
           }
         }
 
         actions.skipChildren();
       }, visit),
-      startNode: this._graph.getNodeIdByContentKey(bundle.id),
+      startNode: bundleNodeId,
       getChildren: nodeId => {
         let children = this._graph
           .getNodeIdsConnectedFrom(nodeId)
@@ -1480,9 +1483,7 @@ export default class BundleGraph {
   merge(other: BundleGraph) {
     let otherGraphIdToThisNodeId = new Map<NodeId, NodeId>();
     for (let [otherNodeId, otherNode] of other._graph.nodes) {
-      let existingNodeContentKey = this._graph.hasContentKey(otherNode.id);
-
-      if (existingNodeContentKey != null) {
+      if (this._graph.hasContentKey(otherNode.id)) {
         let existingNodeId = this._graph.getNodeIdByContentKey(otherNode.id);
         otherGraphIdToThisNodeId.set(otherNodeId, existingNodeId);
 
@@ -1510,7 +1511,10 @@ export default class BundleGraph {
             (otherNode.excluded || Boolean(otherNode.hasDeferred));
         }
       } else {
-        let updateNodeId = this._graph.addNode(otherNode);
+        let updateNodeId = this._graph.addNodeByContentKey(
+          otherNode.id,
+          otherNode,
+        );
         otherGraphIdToThisNodeId.set(otherNodeId, updateNodeId);
       }
     }
