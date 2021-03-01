@@ -13,6 +13,7 @@ import type {
   EntryFileNode,
   EntrySpecifierNode,
   Environment,
+  NodeId,
   Target,
 } from './types';
 
@@ -24,7 +25,7 @@ import {
   objectSortedEntries,
 } from '@parcel/utils';
 import nullthrows from 'nullthrows';
-import Graph, {type GraphOpts} from './Graph';
+import ContentGraph, {type SerializedContentGraph} from './ContentGraph';
 import {createDependency} from './Dependency';
 
 type InitOpts = {|
@@ -34,7 +35,7 @@ type InitOpts = {|
 |};
 
 type SerializedAssetGraph = {|
-  ...GraphOpts<AssetGraphNode>,
+  ...SerializedContentGraph<AssetGraphNode>,
   hash?: ?string,
 |};
 
@@ -97,8 +98,8 @@ export function nodeFromEntryFile(entry: Entry): EntryFileNode {
   };
 }
 
-export default class AssetGraph extends Graph<AssetGraphNode> {
-  onNodeRemoved: ?(node: AssetGraphNode) => mixed;
+export default class AssetGraph extends ContentGraph<AssetGraphNode> {
+  onNodeRemoved: ?(nodeId: NodeId) => mixed;
   hash: ?string;
   envCache: Map<string, Environment>;
 
@@ -109,8 +110,12 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
       this.hash = hash;
     } else {
       super();
-      let rootNode = {id: '@@root', type: 'root', value: null};
-      this.setRootNode(rootNode);
+      const rootNodeId = this.addNode({
+        id: '@@root',
+        type: 'root',
+        value: null,
+      });
+      this.rootNodeId = rootNodeId;
     }
     this.envCache = new Map();
   }
@@ -154,28 +159,38 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
         ...assetGroups.map(assetGroup => nodeFromAssetGroup(assetGroup)),
       );
     }
-    this.replaceNodesConnectedTo(nullthrows(this.getRootNode()), nodes);
+
+    let nodeIds = [];
+    for (let node of nodes) {
+      if (this.getNodeByContentKey(node.id) == null) {
+        nodeIds.push(this.addNode(node));
+      }
+    }
+    this.replaceNodeIdsConnectedTo(nullthrows(this.rootNodeId), nodeIds);
   }
 
-  addNode(node: AssetGraphNode): AssetGraphNode {
+  addNode(node: AssetGraphNode): NodeId {
     this.hash = null;
-    return super.addNode(node);
+    return this.addNodeByContentKey(node.id, node);
   }
 
-  removeNode(node: AssetGraphNode): void {
+  removeNode(nodeId: NodeId): void {
     this.hash = null;
-    this.onNodeRemoved && this.onNodeRemoved(node);
+    this.onNodeRemoved && this.onNodeRemoved(nodeId);
     // This needs to mark all connected nodes that doesn't become orphaned
     // due to replaceNodesConnectedTo to make sure that the symbols of
     // nodes from which at least one parent was removed are updated.
-    if (this.isOrphanedNode(node) && node.type === 'dependency') {
-      let children = this.getNodesConnectedFrom(node);
+    let node = nullthrows(this.getNode(nodeId));
+    if (this._isOrphanedNode(nodeId) && node.type === 'dependency') {
+      let children = this.getNodeIdsConnectedFrom(nodeId).map(id =>
+        this.getNode(id),
+      );
       for (let n of children) {
-        invariant(n.type === 'asset_group' || n.type === 'asset');
+        invariant(n?.type === 'asset_group' || n?.type === 'asset');
         n.usedSymbolsDownDirty = true;
       }
     }
-    return super.removeNode(node);
+    return super.removeNode(nodeId);
   }
 
   resolveEntry(
@@ -183,13 +198,21 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
     resolved: Array<Entry>,
     correspondingRequest: string,
   ) {
-    let entrySpecifierNode = nullthrows(
-      this.getNode(nodeFromEntrySpecifier(entry).id),
+    let entrySpecifierNodeId = this.getNodeIdByContentKey(
+      nodeFromEntrySpecifier(entry).id,
     );
+    let entrySpecifierNode = nullthrows(this.getNode(entrySpecifierNodeId));
     invariant(entrySpecifierNode.type === 'entry_specifier');
     entrySpecifierNode.correspondingRequest = correspondingRequest;
-    let entryFileNodes = resolved.map(file => nodeFromEntryFile(file));
-    this.replaceNodesConnectedTo(entrySpecifierNode, entryFileNodes);
+
+    let entryFileNodeIds = [];
+    resolved.map(file => {
+      let entryNode = nodeFromEntryFile(file);
+      if (this.getNodeByContentKey(entryNode.id) == null) {
+        entryFileNodeIds.push(this.addNode(entryNode));
+      }
+    });
+    this.replaceNodeIdsConnectedTo(entrySpecifierNodeId, entryFileNodeIds);
   }
 
   resolveTargets(
@@ -218,11 +241,22 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
       return node;
     });
 
-    let entryNode = nullthrows(this.getNode(nodeFromEntryFile(entry).id));
+    let depNodeIds = [];
+    for (let node of depNodes) {
+      if (this.getNodeByContentKey(node.id) == null) {
+        depNodeIds.push(this.addNode(node));
+      }
+    }
+
+    let entryNode = nullthrows(
+      this.getNodeByContentKey(nodeFromEntryFile(entry).id),
+    );
     invariant(entryNode.type === 'entry_file');
     entryNode.correspondingRequest = correspondingRequest;
-    if (this.hasNode(entryNode.id)) {
-      this.replaceNodesConnectedTo(entryNode, depNodes);
+
+    let entryNodeId = this._contentKeyToNodeId.get(entryNode.id);
+    if (entryNodeId != null) {
+      this.replaceNodeIdsConnectedTo(entryNodeId, depNodeIds);
     }
   }
 
@@ -231,9 +265,8 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
     assetGroup: ?AssetGroup,
     correspondingRequest: string,
   ) {
-    let depNode = nullthrows(this.nodes.get(dependency.id));
+    let depNode = nullthrows(this.getNodeByContentKey(dependency.id));
     invariant(depNode.type === 'dependency');
-    if (!depNode) return;
     depNode.correspondingRequest = correspondingRequest;
 
     if (!assetGroup) {
@@ -241,17 +274,25 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
     }
 
     let assetGroupNode = nodeFromAssetGroup(assetGroup);
-    let existing = this.getNode(assetGroupNode.id);
-    if (existing) {
+    let existing = this.getNodeByContentKey(assetGroupNode.id);
+    if (existing != null) {
       invariant(existing.type === 'asset_group');
       assetGroupNode.value.canDefer =
         assetGroupNode.value.canDefer && existing.value.canDefer;
     }
 
-    this.replaceNodesConnectedTo(depNode, [assetGroupNode]);
+    let assetGroupNodeId = this._contentKeyToNodeId.get(assetGroupNode.id);
+    if (assetGroupNodeId == null) {
+      assetGroupNodeId = this.addNode(assetGroupNode);
+    }
+    this.replaceNodeIdsConnectedTo(this.getNodeIdByContentKey(dependency.id), [
+      assetGroupNodeId,
+    ]);
   }
 
-  shouldVisitChild(node: AssetGraphNode, childNode: AssetGraphNode): boolean {
+  shouldVisitChild(nodeId: NodeId, childNodeId: NodeId): boolean {
+    let node = nullthrows(this.getNode(nodeId));
+    let childNode = nullthrows(this.getNode(childNodeId));
     if (
       node.type !== 'dependency' ||
       childNode.type !== 'asset_group' ||
@@ -268,47 +309,56 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
     childNode.deferred = defer;
 
     if (!previouslyDeferred && defer) {
-      this.markParentsWithHasDeferred(node);
+      this.markParentsWithHasDeferred(nodeId);
     } else if (previouslyDeferred && !defer) {
-      this.unmarkParentsWithHasDeferred(childNode);
+      this.unmarkParentsWithHasDeferred(
+        this.getNodeIdByContentKey(childNodeId),
+      );
     }
 
     return !defer;
   }
 
-  // Dependency: mark parent Asset <- AssetGroup with hasDeferred true
-  markParentsWithHasDeferred(node: AssetGraphNode) {
-    this.traverseAncestors(node, (_node, _, actions) => {
-      if (_node.type === 'asset') {
-        _node.hasDeferred = true;
-      } else if (_node.type === 'asset_group') {
-        _node.hasDeferred = true;
+  // Dependency: mark parent Asset <- AssetGroup with hasDeferred false
+  markParentsWithHasDeferred(nodeId: NodeId) {
+    this.traverseAncestors(nodeId, (traversedNodeId, _, actions) => {
+      let node = nullthrows(this.getNode(traversedNodeId));
+      if (node.type === 'asset') {
+        node.hasDeferred = true;
+      } else if (node.type === 'asset_group') {
+        node.hasDeferred = true;
         actions.skipChildren();
-      } else if (node !== _node) {
+      } else if (nodeId !== traversedNodeId) {
         actions.skipChildren();
       }
     });
   }
 
   // AssetGroup: update hasDeferred of all parent Dependency <- Asset <- AssetGroup
-  unmarkParentsWithHasDeferred(node: AssetGraphNode) {
-    this.traverseAncestors(node, (_node, ctx, actions) => {
-      if (_node.type === 'asset') {
-        let hasDeferred = this.getNodesConnectedFrom(_node).some(_childNode =>
-          _childNode.hasDeferred == null ? false : _childNode.hasDeferred,
+  unmarkParentsWithHasDeferred(nodeId: NodeId) {
+    this.traverseAncestors(nodeId, (traversedNodeId, ctx, actions) => {
+      let node = nullthrows(this.getNode(traversedNodeId));
+      if (node.type === 'asset') {
+        let hasDeferred = this.getNodeIdsConnectedFrom(traversedNodeId).some(
+          childNodeId => {
+            let childNode = nullthrows(this.getNode(childNodeId));
+            return childNode.hasDeferred == null
+              ? false
+              : childNode.hasDeferred;
+          },
         );
         if (!hasDeferred) {
-          delete _node.hasDeferred;
+          delete node.hasDeferred;
         }
         return {hasDeferred};
-      } else if (_node.type === 'asset_group' && node !== _node) {
+      } else if (node.type === 'asset_group' && nodeId !== traversedNodeId) {
         if (!ctx?.hasDeferred) {
-          delete _node.hasDeferred;
+          delete node.hasDeferred;
         }
         actions.skipChildren();
-      } else if (_node.type === 'dependency') {
-        _node.hasDeferred = false;
-      } else if (node !== _node) {
+      } else if (node.type === 'dependency') {
+        node.hasDeferred = false;
+      } else if (nodeId !== traversedNodeId) {
         actions.skipChildren();
       }
     });
@@ -336,12 +386,14 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
       let depNode = this.getNode(dependency.id);
       invariant(depNode);
 
-      let assets = this.getNodesConnectedTo(depNode);
+      let assets = this.getNodeIdsConnectedTo(
+        this.getNodeIdByContentKey(dependency.id),
+      );
       let symbols = new Map(
         [...dependencySymbols].map(([key, val]) => [val.local, key]),
       );
       invariant(assets.length === 1);
-      let firstAsset = assets[0];
+      let firstAsset = nullthrows(this.getNode(assets[0]));
       invariant(firstAsset.type === 'asset');
       let resolvedAsset = firstAsset.value;
       let deps = this.getIncomingDependencies(resolvedAsset);
@@ -363,11 +415,11 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
   resolveAssetGroup(
     assetGroup: AssetGroup,
     assets: Array<Asset>,
-    correspondingRequest: string,
+    correspondingRequest: NodeId, // content key
   ) {
     this.normalizeEnvironment(assetGroup);
     let assetGroupNode = nodeFromAssetGroup(assetGroup);
-    assetGroupNode = this.getNode(assetGroupNode.id);
+    assetGroupNode = this.getNodeByContentKey(assetGroupNode.id);
     if (!assetGroupNode) {
       return;
     }
@@ -401,26 +453,32 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
       });
     }
 
-    this.replaceNodesConnectedTo(
-      assetGroupNode,
-      assetObjects.filter(a => a.isDirect).map(a => a.assetNode),
+    const assetNodeIds = [];
+    for (let {assetNode, isDirect} of assetObjects) {
+      if (isDirect) {
+        assetNodeIds.push(this.addNode(assetNode));
+      }
+    }
+
+    this.replaceNodeIdsConnectedTo(
+      this.getNodeIdByContentKey(assetGroupNode.id),
+      assetNodeIds,
     );
     for (let {assetNode, dependentAssets} of assetObjects) {
-      // replaceNodesConnectedTo has merged the value into the existing node, retrieve
+      // replaceNodeIdsConnectedTo has merged the value into the existing node, retrieve
       // the actual current node.
-      assetNode = nullthrows(this.getNode(assetNode.id));
       invariant(assetNode.type === 'asset');
       this.resolveAsset(assetNode, dependentAssets);
     }
   }
 
   resolveAsset(assetNode: AssetNode, dependentAssets: Array<Asset>) {
-    let depNodes = [];
+    let depNodeIds: Array<NodeId> = [];
     let depNodesWithAssets = [];
     for (let dep of assetNode.value.dependencies.values()) {
       this.normalizeEnvironment(dep);
       let depNode = nodeFromDep(dep);
-      let existing = this.getNode(depNode.id);
+      let existing = this.getNodeByContentKey(depNode.id);
       if (existing) {
         invariant(existing.type === 'dependency');
         depNode.value.meta = existing.value.meta;
@@ -432,44 +490,67 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
         depNode.complete = true;
         depNodesWithAssets.push([depNode, nodeFromAsset(dependentAsset)]);
       }
-      depNodes.push(depNode);
+
+      let depNodeId = this._contentKeyToNodeId.get(depNode.id);
+      if (depNodeId == null) {
+        depNodeId = this.addNode(depNode);
+      }
+      depNodeIds.push(depNodeId);
     }
     assetNode.usedSymbolsDownDirty = true;
-    this.replaceNodesConnectedTo(assetNode, depNodes);
+    this.replaceNodeIdsConnectedTo(
+      this.getNodeIdByContentKey(assetNode.id),
+      depNodeIds,
+    );
 
     for (let [depNode, dependentAssetNode] of depNodesWithAssets) {
-      this.replaceNodesConnectedTo(depNode, [dependentAssetNode]);
+      let depAssetNodeId;
+      if (this.hasContentKey(dependentAssetNode.id)) {
+        depAssetNodeId = this.getNodeIdByContentKey(dependentAssetNode.id);
+      } else {
+        depAssetNodeId = this.addNode(dependentAssetNode);
+      }
+
+      this.replaceNodeIdsConnectedTo(this.getNodeIdByContentKey(depNode.id), [
+        depAssetNodeId,
+      ]);
     }
   }
 
   getIncomingDependencies(asset: Asset): Array<Dependency> {
-    let node = this.getNode(asset.id);
-    if (!node) {
+    let nodeId = this.getNodeIdByContentKey(asset.id);
+    if (nodeId == null) {
       return [];
     }
 
-    return this.findAncestors(node, node => node.type === 'dependency').map(
-      node => {
-        invariant(node.type === 'dependency');
-        return node.value;
-      },
-    );
+    return this.findAncestors(nodeId, nodeId => {
+      let node = this.getNode(nodeId);
+      return node?.type === 'dependency';
+    }).map(nodeId => {
+      let node = this.getNode(nodeId);
+      invariant(node?.type === 'dependency');
+      return node.value;
+    });
   }
 
   traverseAssets<TContext>(
     visit: GraphVisitor<Asset, TContext>,
-    startNode: ?AssetGraphNode,
+    startNodeId: ?NodeId,
   ): ?TContext {
     return this.filteredTraverse(
-      node => (node.type === 'asset' ? node.value : null),
+      nodeId => {
+        let node = nullthrows(this.getNode(nodeId));
+        return node.type === 'asset' ? node.value : null;
+      },
       visit,
-      startNode,
+      startNodeId,
     );
   }
 
   getEntryAssetGroupNodes(): Array<AssetGroupNode> {
     let entryNodes = [];
-    this.traverse((node, _, actions) => {
+    this.traverse((nodeId, _, actions) => {
+      let node = nullthrows(this.getNode(nodeId));
       if (node.type === 'asset_group') {
         entryNodes.push(node);
         actions.skipChildren();
@@ -495,7 +576,8 @@ export default class AssetGraph extends Graph<AssetGraphNode> {
 
     let hash = crypto.createHash('md5');
     // TODO: sort??
-    this.traverse(node => {
+    this.traverse(nodeId => {
+      let node = nullthrows(this.getNode(nodeId));
       if (node.type === 'asset') {
         hash.update(nullthrows(node.value.outputHash));
       } else if (node.type === 'dependency' && node.value.target) {

@@ -94,6 +94,7 @@ export default async function applyRuntimes({
     }
   }
 
+  // $FlowFixMe[incompatible-call] TODO : NODE ID - need to understand why this isn't typing to just AssetGraph, unclear why it thinks it is a promise
   let runtimesAssetGraph = await reconcileNewRuntimes(
     requestTracker,
     connections,
@@ -115,11 +116,12 @@ export default async function applyRuntimes({
 
   for (let {bundle, assetGroup, dependency, isEntry} of connections) {
     let assetGroupNode = nodeFromAssetGroup(assetGroup);
-    let assetGroupAssets = runtimesAssetGraph.getNodesConnectedFrom(
-      assetGroupNode,
+    let assetGroupAssetNodeIds = runtimesAssetGraph.getNodeIdsConnectedFrom(
+      runtimesAssetGraph.getNodeIdByContentKey(assetGroupNode),
     );
-    invariant(assetGroupAssets.length === 1);
-    let runtimeNode = assetGroupAssets[0];
+    invariant(assetGroupAssetNodeIds.length === 1);
+    let runtimeNodeId = assetGroupAssetNodeIds[0];
+    let runtimeNode = nullthrows(runtimesAssetGraph.getNode(runtimeNodeId));
     invariant(runtimeNode.type === 'asset');
 
     let resolution =
@@ -129,14 +131,16 @@ export default async function applyRuntimes({
         bundle,
       );
     let duplicatedAssetIds: Set<NodeId> = new Set();
-    runtimesGraph._graph.traverse((node, _, actions) => {
+    runtimesGraph._graph.traverse((nodeId, _, actions) => {
+      let node = nullthrows(runtimesGraph._graph.getNode(nodeId));
       if (node.type !== 'dependency') {
         return;
       }
 
       let assets = runtimesGraph._graph
-        .getNodesConnectedFrom(node)
-        .map(assetNode => {
+        .getNodeIdsConnectedFrom(nodeId)
+        .map(assetNodeId => {
+          let assetNode = nullthrows(runtimesGraph._graph.getNode(assetNodeId));
           invariant(assetNode.type === 'asset');
           return assetNode.value;
         });
@@ -150,35 +154,45 @@ export default async function applyRuntimes({
           actions.skipChildren();
         }
       }
-    }, runtimeNode);
+    }, runtimeNodeId);
 
-    runtimesGraph._graph.traverse((node, _, actions) => {
+    let bundleNodeId = runtimesGraph._graph.getNodeIdByContentKey(bundle.id);
+    let bundleGraphRuntimeNodeId = bundleGraph._graph.getNodeIdByContentKey(
+      runtimeNode.id,
+    ); // the node id is not constant between graphs
+
+    runtimesGraph._graph.traverse((nodeId, _, actions) => {
+      let node = nullthrows(runtimesGraph._graph.getNode(nodeId));
       if (node.type === 'asset' || node.type === 'dependency') {
-        if (duplicatedAssetIds.has(node.id)) {
+        if (duplicatedAssetIds.has(nodeId)) {
           actions.skipChildren();
           return;
         }
 
-        bundleGraph._graph.addEdge(bundle.id, node.id, 'contains');
+        const bundleGraphNodeId = bundleGraph._graph.getNodeIdByContentKey(
+          node.id,
+        ); // the node id is not constant between graphs
+        bundleGraph._graph.addEdge(bundleNodeId, bundleGraphNodeId, 'contains');
       }
-    }, runtimeNode);
+    }, runtimeNodeId);
 
     if (isEntry) {
-      bundleGraph._graph.addEdge(
-        nullthrows(bundleGraph._graph.getNode(bundle.id)).id,
-        runtimeNode.id,
-      );
-      bundle.entryAssetIds.unshift(runtimeNode.id);
+      bundleGraph._graph.addEdge(bundleNodeId, bundleGraphRuntimeNodeId);
+      bundle.entryAssetIds.unshift(bundleGraphRuntimeNodeId);
     }
 
     if (dependency == null) {
       // Verify this asset won't become an island
       assert(
-        bundleGraph._graph.getNodesConnectedTo(runtimeNode).length > 0,
+        bundleGraph._graph.getNodeIdsConnectedTo(bundleGraphRuntimeNodeId)
+          .length > 0,
         'Runtime must have an inbound dependency or be an entry',
       );
     } else {
-      bundleGraph._graph.addEdge(dependency.id, runtimeNode.id);
+      let dependencyNodeId = bundleGraph._graph.getNodeIdByContentKey(
+        dependency.id,
+      );
+      bundleGraph._graph.addEdge(dependencyNodeId, bundleGraphRuntimeNodeId);
     }
   }
 }

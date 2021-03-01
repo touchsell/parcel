@@ -45,13 +45,15 @@ export default class ContentGraph<
   }
 
   addNodeByContentKey(contentKey: string, node: TNode): NodeId {
-    let nodeId = super.addNode2(node);
-    let fromNode = this.getNodeByContentKey(contentKey);
-    if (fromNode != null) {
-      super.replaceNode(fromNode, node);
+    let fromNodeId = this._contentKeyToNodeId.get(contentKey);
+    if (fromNodeId == null) {
+      let nodeId = super.addNode(node);
+      this._contentKeyToNodeId.set(contentKey, nodeId);
+      return nodeId;
+    } else {
+      this.updateNode(fromNodeId, node);
+      return fromNodeId;
     }
-    this._contentKeyToNodeId.set(contentKey, nodeId);
-    return nodeId;
   }
 
   getNodeByContentKey(contentKey: string): ?TNode {
@@ -66,5 +68,15 @@ export default class ContentGraph<
       this._contentKeyToNodeId.get(contentKey),
       'Expected content key to exist',
     );
+  }
+
+  hasContentKey(contentKey: string): boolean {
+    return this._contentKeyToNodeId.get(contentKey) != null;
+  }
+
+  removeNode(nodeId: NodeId) {
+    this._assertHasNodeId(nodeId);
+    this._contentKeyToNodeId.delete(nullthrows(this.getNode(nodeId)).id);
+    super.removeNode(nodeId);
   }
 }

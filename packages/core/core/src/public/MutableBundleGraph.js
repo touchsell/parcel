@@ -255,7 +255,8 @@ export default class MutableBundleGraph extends BundleGraph<IBundle>
     visit: GraphVisitor<BundlerBundleGraphTraversable, TContext>,
   ): ?TContext {
     return this.#graph._graph.filteredTraverse(
-      node => {
+      nodeId => {
+        let node = nullthrows(this.#graph._graph.getNode(nodeId));
         if (node.type === 'asset') {
           return {
             type: 'asset',
@@ -265,6 +266,7 @@ export default class MutableBundleGraph extends BundleGraph<IBundle>
           return {type: 'dependency', value: new Dependency(node.value)};
         }
       },
+      // $FlowFixMe[incompatible-call] -- TODO : NODE ID :: public API needs to know about NodeId type?
       visit,
       undefined, // start with root
       // $FlowFixMe

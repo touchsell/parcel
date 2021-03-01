@@ -323,6 +323,7 @@ export async function runBundles(
     );
     for (let b of bundles) {
       // require, parcelRequire was set up in prepare*Context
+      console.log(await overlayFS.readFile(nullthrows(b.filePath), 'utf8'));
       new vm.Script(
         // '"use strict";\n' +
         await overlayFS.readFile(nullthrows(b.filePath), 'utf8'),

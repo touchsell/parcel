@@ -41,14 +41,16 @@ describe('Parcel', function() {
       endSpy.restore();
     });
 
+    // TODO : NODE ID --- disabling cache to see if this works..., the old cache does not have the mapping
     it('ends any WorkerFarm it creates', async () => {
-      let parcel = createParcel();
+      let parcel = createParcel({shouldDisableCache: true});
       await parcel.run();
       assert.equal(endSpy.callCount, 1);
     });
 
     it('runs and constructs another farm for subsequent builds', async () => {
-      let parcel = createParcel();
+      // TODO : NODE ID --- disabling cache to see if this works..., the old cache does not have the mapping
+      let parcel = createParcel({shouldDisableCache: true});
 
       await parcel.run();
       await parcel.run();
@@ -57,7 +59,8 @@ describe('Parcel', function() {
     });
 
     it('does not end passed WorkerFarms', async () => {
-      let parcel = createParcel({workerFarm});
+      // TODO : NODE ID --- disabling cache to see if this works..., the old cache does not have the mapping
+      let parcel = createParcel({workerFarm, shouldDisableCache: true});
       await parcel.run();
       assert.equal(endSpy.callCount, 0);
 
@@ -65,7 +68,8 @@ describe('Parcel', function() {
     });
 
     it('removes shared references it creates', async () => {
-      let parcel = createParcel({workerFarm});
+      // TODO : NODE ID --- disabling cache to see if this works..., the old cache does not have the mapping
+      let parcel = createParcel({workerFarm, shouldDisableCache: true});
       await parcel.run();
 
       assert.equal(workerFarm.sharedReferences.size, 0);
