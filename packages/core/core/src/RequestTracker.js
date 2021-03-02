@@ -218,21 +218,21 @@ export class RequestGraph extends ContentGraph<
   }
 
   addNode(node: RequestGraphNode): NodeId {
-    if (!this._contentKeyToNodeId.get(node.id)) {
-      if (node.type === 'glob') {
-        this.globNodeIds.add(node.id);
-      }
+    let nodeId = super.addNodeByContentKey(node.id, node);
 
-      if (node.type === 'env') {
-        this.envNodeIds.add(node.id);
-      }
-
-      if (node.type === 'option') {
-        this.optionNodeIds.add(node.id);
-      }
+    if (node.type === 'glob') {
+      this.globNodeIds.add(nodeId);
     }
 
-    return super.addNodeByContentKey(node.id, node);
+    if (node.type === 'env') {
+      this.envNodeIds.add(nodeId);
+    }
+
+    if (node.type === 'option') {
+      this.optionNodeIds.add(nodeId);
+    }
+
+    return nodeId;
   }
 
   removeNode(nodeId: NodeId): void {
@@ -338,13 +338,7 @@ export class RequestGraph extends ContentGraph<
 
   invalidateOnFileUpdate(requestNodeId: NodeId, filePath: FilePath) {
     let fileNode = nodeFromFilePath(filePath);
-
-    let fileNodeId;
-    if (!this.hasContentKey(fileNode.id)) {
-      fileNodeId = this.addNode(fileNode);
-    } else {
-      fileNodeId = this.getNodeIdByContentKey(fileNode.id);
-    }
+    let fileNodeId = this.addNode(fileNode);
 
     if (!this.hasEdge(requestNodeId, fileNodeId, 'invalidated_by_update')) {
       this.addEdge(requestNodeId, fileNodeId, 'invalidated_by_update');
@@ -353,13 +347,7 @@ export class RequestGraph extends ContentGraph<
 
   invalidateOnFileDelete(requestNodeId: NodeId, filePath: FilePath) {
     let fileNode = nodeFromFilePath(filePath);
-
-    let fileNodeId;
-    if (!this.hasContentKey(fileNode.id)) {
-      fileNodeId = this.addNode(fileNode);
-    } else {
-      fileNodeId = this.getNodeIdByContentKey(fileNode.id);
-    }
+    let fileNodeId = this.addNode(fileNode);
 
     if (!this.hasEdge(requestNodeId, fileNodeId, 'invalidated_by_delete')) {
       this.addEdge(requestNodeId, fileNodeId, 'invalidated_by_delete');
@@ -382,12 +370,7 @@ export class RequestGraph extends ContentGraph<
       let lastNodeId;
       for (let part of parts) {
         let fileNameNode = nodeFromFileName(part);
-        let fileNameNodeId;
-        if (!this.hasContentKey(fileNameNode.id)) {
-          fileNameNodeId = this.addNode(fileNameNode);
-        } else {
-          fileNameNodeId = this.getNodeIdByContentKey(fileNameNode.id);
-        }
+        let fileNameNodeId = this.addNode(fileNameNode);
 
         if (
           lastNodeId != null &&
@@ -404,12 +387,7 @@ export class RequestGraph extends ContentGraph<
       // is created in a parent directory). There is likely to already be a node
       // for this file in the graph (e.g. the source file) that we can reuse for this.
       node = nodeFromFilePath(aboveFilePath);
-      let nodeId;
-      if (!this.hasContentKey(node.id)) {
-        nodeId = this.addNode(node);
-      } else {
-        nodeId = this.getNodeIdByContentKey(node.id);
-      }
+      let nodeId = this.addNode(node);
 
       // Now create an edge from the `aboveFilePath` node to the first file_name node
       // in the chain created above, and an edge from the last node in the chain back to
@@ -596,11 +574,11 @@ export class RequestGraph extends ContentGraph<
         }
       } else if (type === 'create') {
         let basename = path.basename(filePath);
-        let fileNameNodeId = this.getNodeIdByContentKey(
-          'file_name:' + basename,
-        );
         let fileNameNode = this.getNodeByContentKey('file_name:' + basename);
-        if (fileNameNodeId != null && fileNameNode?.type === 'file_name') {
+        if (fileNameNode != null && fileNameNode?.type === 'file_name') {
+          let fileNameNodeId = this.getNodeIdByContentKey(
+            'file_name:' + basename,
+          );
           // Find potential file nodes to be invalidated if this file name pattern matches
           let above = this.getNodeIdsConnectedTo(
             fileNameNodeId,
@@ -767,12 +745,12 @@ export default class RequestTracker {
     request: Request<TInput, TResult>,
     opts?: ?RunRequestOpts,
   ): Async<TResult> {
-    let nodeId = this.graph._contentKeyToNodeId.get(request.id);
-    let hasValidResult = nodeId != null && this.hasValidResult(nodeId);
+    let requestId = this.graph._contentKeyToNodeId.get(request.id);
+    let hasValidResult = requestId != null && this.hasValidResult(requestId);
 
     if (!opts?.force && hasValidResult) {
       // $FlowFixMe
-      return this.getRequestResult<TResult>(nodeId);
+      return this.getRequestResult<TResult>(requestId);
     }
 
     let requestNodeId = this.startRequest({

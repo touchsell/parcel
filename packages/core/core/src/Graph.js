@@ -13,6 +13,7 @@ export type GraphOpts<TNode, TEdgeType: string | null = null> = {|
     outboundEdges: AdjacencyListMap<TEdgeType | null>,
   |},
   rootNodeId?: ?NodeId,
+  nextNodeId?: ?number,
 |};
 
 export const ALL_EDGE_TYPES = '@@all_edge_types';
@@ -27,6 +28,7 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
   constructor(opts: GraphOpts<TNode, TEdgeType> = ({}: any)) {
     this.nodes = opts.nodes || new Map();
     this.rootNodeId = opts.rootNodeId;
+    this.nextNodeId = opts.nextNodeId ?? 0;
 
     if (opts.edges) {
       this.inboundEdges = new AdjacencyList(opts.edges.inboundEdges);
@@ -44,6 +46,7 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
       nodes: opts.nodes,
       edges: opts.edges,
       rootNodeId: opts.rootNodeId,
+      nextNodeId: opts.nextNodeId,
     });
   }
 
@@ -55,6 +58,7 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
         outboundEdges: this.outboundEdges.getListMap(),
       },
       rootNodeId: this.rootNodeId,
+      nextNodeId: this.nextNodeId,
     };
   }
 

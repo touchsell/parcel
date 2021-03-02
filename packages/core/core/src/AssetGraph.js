@@ -162,9 +162,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
 
     let nodeIds = [];
     for (let node of nodes) {
-      if (this.getNodeByContentKey(node.id) == null) {
-        nodeIds.push(this.addNode(node));
-      }
+      nodeIds.push(this.addNode(node));
     }
     this.replaceNodeIdsConnectedTo(nullthrows(this.rootNodeId), nodeIds);
   }
@@ -207,10 +205,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
 
     let entryFileNodeIds = [];
     resolved.map(file => {
-      let entryNode = nodeFromEntryFile(file);
-      if (this.getNodeByContentKey(entryNode.id) == null) {
-        entryFileNodeIds.push(this.addNode(entryNode));
-      }
+      entryFileNodeIds.push(this.addNode(nodeFromEntryFile(file)));
     });
     this.replaceNodeIdsConnectedTo(entrySpecifierNodeId, entryFileNodeIds);
   }
@@ -243,9 +238,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
 
     let depNodeIds = [];
     for (let node of depNodes) {
-      if (this.getNodeByContentKey(node.id) == null) {
-        depNodeIds.push(this.addNode(node));
-      }
+      depNodeIds.push(this.addNode(node));
     }
 
     let entryNode = nullthrows(
@@ -383,12 +376,11 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
       canDefer &&
       !dependencySymbols.has('*')
     ) {
-      let depNode = this.getNode(dependency.id);
+      let depNodeId = this.getNodeIdByContentKey(dependency.id);
+      let depNode = this.getNode(depNodeId);
       invariant(depNode);
 
-      let assets = this.getNodeIdsConnectedTo(
-        this.getNodeIdByContentKey(dependency.id),
-      );
+      let assets = this.getNodeIdsConnectedTo(depNodeId);
       let symbols = new Map(
         [...dependencySymbols].map(([key, val]) => [val.local, key]),
       );
@@ -504,12 +496,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
     );
 
     for (let [depNode, dependentAssetNode] of depNodesWithAssets) {
-      let depAssetNodeId;
-      if (this.hasContentKey(dependentAssetNode.id)) {
-        depAssetNodeId = this.getNodeIdByContentKey(dependentAssetNode.id);
-      } else {
-        depAssetNodeId = this.addNode(dependentAssetNode);
-      }
+      let depAssetNodeId = this.addNode(dependentAssetNode);
 
       this.replaceNodeIdsConnectedTo(this.getNodeIdByContentKey(depNode.id), [
         depAssetNodeId,

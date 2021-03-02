@@ -94,7 +94,6 @@ export default async function applyRuntimes({
     }
   }
 
-  // $FlowFixMe[incompatible-call] TODO : NODE ID - need to understand why this isn't typing to just AssetGraph, unclear why it thinks it is a promise
   let runtimesAssetGraph = await reconcileNewRuntimes(
     requestTracker,
     connections,
@@ -182,7 +181,7 @@ export default async function applyRuntimes({
 
     if (isEntry) {
       bundleGraph._graph.addEdge(bundleNodeId, bundleGraphRuntimeNodeId);
-      bundle.entryAssetIds.unshift(bundleGraphRuntimeNodeId);
+      bundle.entryAssetIds.unshift(runtimeNode.id);
     }
 
     if (dependency == null) {

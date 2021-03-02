@@ -633,7 +633,7 @@ export class AssetGraphBuilder {
         let incoming = this.assetGraph
           .getIncomingDependencies(node.value)
           .map(d => {
-            let n = this.assetGraph.getNode(d.id);
+            let n = this.assetGraph.getNodeByContentKey(d.id);
             invariant(n && n.type === 'dependency');
             return n;
           });
@@ -669,7 +669,7 @@ export class AssetGraphBuilder {
       }
     };
     walk(rootNodeId);
-    // traverse circular dependencies if neccessary (anchestors of `dirtyDeps`)
+    // traverse circular dependencies if necessary (ancestors of `dirtyDeps`)
     visited = new Set();
     let queue: Array<NodeId> = [...dirtyDeps];
     while (queue.length > 0) {
@@ -681,7 +681,7 @@ export class AssetGraphBuilder {
         let incoming = this.assetGraph
           .getIncomingDependencies(node.value)
           .map(dep => {
-            let depNode = this.assetGraph.getNode(dep.id);
+            let depNode = this.assetGraph.getNodeByContentKey(dep.id);
             invariant(depNode && depNode.type === 'dependency');
             return depNode;
           });
