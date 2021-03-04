@@ -94,8 +94,6 @@ export default class MutableBundleGraph extends BundleGraph<IBundle>
       value: bundleGroup,
     };
 
-    // come back here
-    // unsure of getting bundle group node by content key
     let bundleGroupNodeId = this.#graph._graph.addNodeByContentKey(
       bundleGroupNode.id,
       bundleGroupNode,

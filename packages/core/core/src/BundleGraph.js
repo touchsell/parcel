@@ -1120,8 +1120,10 @@ export default class BundleGraph {
     return this._graph
       .getNodeIdsConnectedTo(
         this._graph.getNodeIdByContentKey(asset.id),
+        // $FlowFixMe
         ALL_EDGE_TYPES,
       )
+      .map(id => nullthrows(this._graph.getNode(id)))
       .filter(n => n.type === 'dependency')
       .map(n => {
         invariant(n.type === 'dependency');

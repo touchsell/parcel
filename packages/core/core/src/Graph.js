@@ -376,7 +376,7 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
     };
 
     let walk = (nodeId, context) => {
-      this._assertHasNodeId(nodeId);
+      if (!this.hasNode(nodeId)) return;
       visited.add(nodeId);
 
       skipped = false;

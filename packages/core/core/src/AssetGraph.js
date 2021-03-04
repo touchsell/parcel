@@ -247,9 +247,11 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
     invariant(entryNode.type === 'entry_file');
     entryNode.correspondingRequest = correspondingRequest;
 
-    let entryNodeId = this._contentKeyToNodeId.get(entryNode.id);
-    if (entryNodeId != null) {
-      this.replaceNodeIdsConnectedTo(entryNodeId, depNodeIds);
+    if (this.hasContentKey(entryNode.id)) {
+      this.replaceNodeIdsConnectedTo(
+        this.getNodeIdByContentKey(entryNode.id),
+        depNodeIds,
+      );
     }
   }
 
@@ -304,9 +306,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
     if (!previouslyDeferred && defer) {
       this.markParentsWithHasDeferred(nodeId);
     } else if (previouslyDeferred && !defer) {
-      this.unmarkParentsWithHasDeferred(
-        this.getNodeIdByContentKey(childNodeId),
-      );
+      this.unmarkParentsWithHasDeferred(childNodeId);
     }
 
     return !defer;
@@ -482,12 +482,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
         depNode.complete = true;
         depNodesWithAssets.push([depNode, nodeFromAsset(dependentAsset)]);
       }
-
-      let depNodeId = this._contentKeyToNodeId.get(depNode.id);
-      if (depNodeId == null) {
-        depNodeId = this.addNode(depNode);
-      }
-      depNodeIds.push(depNodeId);
+      depNodeIds.push(this.addNode(depNode));
     }
     assetNode.usedSymbolsDownDirty = true;
     this.replaceNodeIdsConnectedTo(
@@ -505,11 +500,11 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
   }
 
   getIncomingDependencies(asset: Asset): Array<Dependency> {
-    let nodeId = this.getNodeIdByContentKey(asset.id);
-    if (nodeId == null) {
+    if (!this.hasContentKey(asset.id)) {
       return [];
     }
 
+    let nodeId = this.getNodeIdByContentKey(asset.id);
     return this.findAncestors(nodeId, nodeId => {
       let node = this.getNode(nodeId);
       return node?.type === 'dependency';
