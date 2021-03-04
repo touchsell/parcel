@@ -167,7 +167,7 @@ export default async function applyRuntimes({
     runtimesGraph._graph.traverse((nodeId, _, actions) => {
       let node = nullthrows(runtimesGraph._graph.getNode(nodeId));
       if (node.type === 'asset' || node.type === 'dependency') {
-        if (duplicatedAssetIds.has(nodeId)) {
+        if (duplicatedAssetIds.has(node.id)) {
           actions.skipChildren();
           return;
         }
