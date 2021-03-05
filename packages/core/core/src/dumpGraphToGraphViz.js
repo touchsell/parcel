@@ -3,6 +3,7 @@
 import type {Environment} from './types';
 
 import type Graph from './Graph';
+import {fromNodeId} from './types';
 import type {AssetGraphNode, BundleGraphNode} from './types';
 
 import path from 'path';
@@ -53,7 +54,7 @@ export default async function dumpGraphToGraphViz(
     n.set('color', COLORS[node.type || 'default']);
     n.set('shape', 'box');
     n.set('style', 'filled');
-    let label = `${node.type || 'No Type'}: [${nodeId}]: `;
+    let label = `${node.type || 'No Type'}: [${fromNodeId(nodeId)}]: `;
     if (node.type === 'dependency') {
       label += node.value.moduleSpecifier;
       let parts = [];

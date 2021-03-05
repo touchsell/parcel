@@ -5,6 +5,7 @@ import assert from 'assert';
 
 // flowlint-next-line untyped-import:off
 import Graph from '../src/Graph';
+import {toNodeId} from '../src/types';
 
 describe('Graph', () => {
   it('constructor should initialize an empty graph', () => {
@@ -23,7 +24,7 @@ describe('Graph', () => {
   it("errors when removeNode is called with a node that doesn't belong", () => {
     let graph = new Graph();
     assert.throws(() => {
-      graph.removeNode('invalid id');
+      graph.removeNode(toNodeId('-1'));
     }, /Does not have node/);
   });
 
@@ -39,14 +40,14 @@ describe('Graph', () => {
     let graph = new Graph();
 
     assert.throws(() => {
-      graph.traverse(() => {}, 'dne');
+      graph.traverse(() => {}, toNodeId('-1'));
     }, /Does not have node/);
   });
 
   it("errors if replaceNodeIdsConnectedTo is called with a node that doesn't belong", () => {
     let graph = new Graph();
     assert.throws(() => {
-      graph.replaceNodeIdsConnectedTo('invalid id', []);
+      graph.replaceNodeIdsConnectedTo(toNodeId('-1'), []);
     }, /Does not have node/);
   });
 
@@ -54,23 +55,23 @@ describe('Graph', () => {
     let graph = new Graph();
     let node = graph.addNode({id: 'foo', type: 'mynode', value: null});
     assert.throws(() => {
-      graph.addEdge(node, 'invalid id');
-    }, /"to" node 'invalid id' not found/);
+      graph.addEdge(node, toNodeId('-1'));
+    }, /"to" node '-1' not found/);
   });
 
   it("errors when adding an edge from a node that doesn't exist", () => {
     let graph = new Graph();
     let node = graph.addNode({id: 'foo', type: 'mynode', value: null});
     assert.throws(() => {
-      graph.addEdge('invalid id', node);
-    }, /"from" node 'invalid id' not found/);
+      graph.addEdge(toNodeId('-1'), node);
+    }, /"from" node '-1' not found/);
   });
 
   it('hasNode should return a boolean based on whether the node exists in the graph', () => {
     let graph = new Graph();
     let node = graph.addNode({id: 'a', type: 'mynode', value: 'a'});
     assert(graph.hasNode(node));
-    assert(!graph.hasNode('b'));
+    assert(!graph.hasNode(toNodeId('-1')));
   });
 
   it('addEdge should add an edge to the graph', () => {

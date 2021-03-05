@@ -1,5 +1,6 @@
 // @flow
 
+import {toNodeId, fromNodeId} from './types';
 import type {Edge, Node, NodeId} from './types';
 import type {TraversalActions, GraphVisitor} from '@parcel/types';
 
@@ -77,7 +78,7 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
   }
 
   addNode(node: TNode): NodeId {
-    let id = String(this.nextNodeId++);
+    let id = toNodeId(String(this.nextNodeId++));
     this.nodes.set(id, node);
     return id;
   }
@@ -92,11 +93,11 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
 
   addEdge(from: NodeId, to: NodeId, type: TEdgeType | null = null): void {
     if (!this.getNode(from)) {
-      throw new Error(`"from" node '${from}' not found`);
+      throw new Error(`"from" node '${fromNodeId(from)}' not found`);
     }
 
     if (!this.getNode(to)) {
-      throw new Error(`"to" node '${to}' not found`);
+      throw new Error(`"to" node '${fromNodeId(to)}' not found`);
     }
 
     this.outboundEdges.addEdge(from, to, type);
@@ -199,11 +200,11 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
     assert(wasRemoved);
   }
 
-  removeEdges(node: TNode, type: TEdgeType | null = null) {
-    assertHasNode(this, node);
+  removeEdges(nodeId: NodeId, type: TEdgeType | null = null) {
+    this._assertHasNodeId(nodeId);
 
-    for (let to of this.outboundEdges.getEdges(node.id, type)) {
-      this.removeEdge(node.id, to, type);
+    for (let to of this.outboundEdges.getEdges(nodeId, type)) {
+      this.removeEdge(nodeId, to, type);
     }
   }
 
@@ -215,11 +216,17 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
     removeOrphans: boolean = true,
   ) {
     if (!this.outboundEdges.hasEdge(from, to, type)) {
-      throw new Error(`Outbound edge from ${from} to ${to} not found!`);
+      throw new Error(
+        `Outbound edge from ${fromNodeId(from)} to ${fromNodeId(
+          to,
+        )} not found!`,
+      );
     }
 
     if (!this.inboundEdges.hasEdge(to, from, type)) {
-      throw new Error(`Inbound edge from ${to} to ${from} not found!`);
+      throw new Error(
+        `Inbound edge from ${fromNodeId(to)} to ${fromNodeId(from)} not found!`,
+      );
     }
 
     this.outboundEdges.removeEdge(from, to, type);
@@ -506,7 +513,7 @@ export default class Graph<TNode: Node, TEdgeType: string | null = null> {
 
   _assertHasNodeId(nodeId: NodeId) {
     if (!this.hasNode(nodeId)) {
-      throw new Error('Does not have node ' + nodeId);
+      throw new Error('Does not have node ' + fromNodeId(nodeId));
     }
   }
 }
@@ -543,12 +550,6 @@ export function mapVisitor<NodeId, TValue, TContext>(
       }
     },
   };
-}
-
-function assertHasNode<TNode: Node>(graph: Graph<TNode, *>, node: TNode) {
-  if (!graph.hasNode(node.id)) {
-    throw new Error('Does not have node ' + node.id);
-  }
 }
 
 type AdjacencyListMap<TEdgeType> = Map<NodeId, Map<TEdgeType, Set<NodeId>>>;

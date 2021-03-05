@@ -2,7 +2,7 @@
 
 import type {Async, FilePath, File, PackageJSON} from '@parcel/types';
 import type {StaticRunOpts} from '../RequestTracker';
-import type {Entry, ParcelOptions} from '../types';
+import type {ContentKey, Entry, ParcelOptions} from '../types';
 import type {FileSystem} from '@parcel/fs';
 
 import {isDirectoryInside, isGlob, glob} from '@parcel/utils';
@@ -15,7 +15,7 @@ type RunOpts = {|
 |};
 
 export type EntryRequest = {|
-  id: string,
+  id: ContentKey,
   +type: 'entry_request',
   run: RunOpts => Async<EntryResult>,
   input: FilePath,

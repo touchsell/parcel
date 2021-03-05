@@ -7,6 +7,7 @@ import type {
   AssetGroup,
   AssetGroupNode,
   AssetNode,
+  ContentKey,
   Dependency,
   DependencyNode,
   Entry,
@@ -194,7 +195,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
   resolveEntry(
     entry: string,
     resolved: Array<Entry>,
-    correspondingRequest: string,
+    correspondingRequest: ContentKey,
   ) {
     let entrySpecifierNodeId = this.getNodeIdByContentKey(
       nodeFromEntrySpecifier(entry).id,
@@ -213,7 +214,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
   resolveTargets(
     entry: Entry,
     targets: Array<Target>,
-    correspondingRequest: string,
+    correspondingRequest: ContentKey,
   ) {
     let depNodes = targets.map(target => {
       let node = nodeFromDep(
@@ -258,7 +259,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
   resolveDependency(
     dependency: Dependency,
     assetGroup: ?AssetGroup,
-    correspondingRequest: string,
+    correspondingRequest: ContentKey,
   ) {
     let depNode = nullthrows(this.getNodeByContentKey(dependency.id));
     invariant(depNode.type === 'dependency');
@@ -407,7 +408,7 @@ export default class AssetGraph extends ContentGraph<AssetGraphNode> {
   resolveAssetGroup(
     assetGroup: AssetGroup,
     assets: Array<Asset>,
-    correspondingRequest: NodeId, // content key
+    correspondingRequest: ContentKey,
   ) {
     this.normalizeEnvironment(assetGroup);
     let assetGroupNode = nodeFromAssetGroup(assetGroup);

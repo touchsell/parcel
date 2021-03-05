@@ -5,7 +5,7 @@ import type {SharedReference} from '@parcel/workers';
 import type {
   AssetGroup,
   Bundle as InternalBundle,
-  NodeId,
+  ContentKey,
   ParcelOptions,
 } from './types';
 import type ParcelConfig from './ParcelConfig';
@@ -133,7 +133,7 @@ export default async function applyRuntimes({
     let runtimesGraphRuntimeNodeId = runtimesGraph._graph.getNodeIdByContentKey(
       runtimeNode.id,
     );
-    let duplicatedAssetIds: Set<NodeId> = new Set();
+    let duplicatedContentKeys: Set<ContentKey> = new Set();
     runtimesGraph._graph.traverse((nodeId, _, actions) => {
       let node = nullthrows(runtimesGraph._graph.getNode(nodeId));
       if (node.type !== 'dependency') {
@@ -153,7 +153,7 @@ export default async function applyRuntimes({
           bundleGraph.isAssetReachableFromBundle(asset, bundle) ||
           resolution?.id === asset.id
         ) {
-          duplicatedAssetIds.add(asset.id);
+          duplicatedContentKeys.add(asset.id);
           actions.skipChildren();
         }
       }
@@ -167,7 +167,7 @@ export default async function applyRuntimes({
     runtimesGraph._graph.traverse((nodeId, _, actions) => {
       let node = nullthrows(runtimesGraph._graph.getNode(nodeId));
       if (node.type === 'asset' || node.type === 'dependency') {
-        if (duplicatedAssetIds.has(node.id)) {
+        if (duplicatedContentKeys.has(node.id)) {
           actions.skipChildren();
           return;
         }

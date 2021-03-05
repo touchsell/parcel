@@ -452,7 +452,7 @@ export default class BundleGraph {
       this.removeBundle(bundle);
     }
 
-    this._bundleContentHashes.delete(bundleNodeId);
+    this._bundleContentHashes.delete(bundle.id);
   }
 
   removeBundle(bundle: Bundle) {

@@ -213,7 +213,16 @@ export type ParcelOptions = {|
   |},
 |};
 
+// forcing NodeId to be opaque as it should only be created once
 export type NodeId = string;
+export function toNodeId(x: string): NodeId {
+  return x;
+}
+export function fromNodeId(x: NodeId): string {
+  return x;
+}
+
+export type ContentKey = string;
 
 export type Edge<TEdgeType: string | null> = {|
   from: NodeId,
@@ -222,14 +231,14 @@ export type Edge<TEdgeType: string | null> = {|
 |};
 
 export interface Node {
-  id: NodeId;
+  id: ContentKey;
   +type: string;
   // $FlowFixMe
   value: any;
 }
 
 export type AssetNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'asset',
   value: Asset,
   usedSymbols: Set<Symbol>,
@@ -240,7 +249,7 @@ export type AssetNode = {|
 |};
 
 export type DependencyNode = {|
-  id: NodeId,
+  id: ContentKey,
   type: 'dependency',
   value: Dependency,
   complete?: boolean,
@@ -259,7 +268,7 @@ export type DependencyNode = {|
   excluded: boolean,
 |};
 
-export type RootNode = {|id: NodeId, +type: 'root', value: string | null|};
+export type RootNode = {|id: ContentKey, +type: 'root', value: string | null|};
 
 export type AssetRequestInput = {|
   name?: string, // AssetGraph name, needed so that different graphs can isolated requests since the results are not stored
@@ -282,7 +291,7 @@ export type AssetGroup = $Rest<
   {|optionsRef: SharedReference|},
 >;
 export type AssetGroupNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'asset_group',
   value: AssetGroup,
   correspondingRequest?: string,
@@ -304,19 +313,19 @@ export type TransformationRequest = {|
 |};
 
 export type DepPathRequestNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'dep_path_request',
   value: Dependency,
 |};
 
 export type AssetRequestNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'asset_request',
   value: AssetRequestInput,
 |};
 
 export type EntrySpecifierNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'entry_specifier',
   value: ModuleSpecifier,
   correspondingRequest?: string,
@@ -329,7 +338,7 @@ export type Entry = {|
 |};
 
 export type EntryFileNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'entry_file',
   value: Entry,
   correspondingRequest?: string,
@@ -352,12 +361,6 @@ export type BundleGraphNode =
   | BundleGroupNode
   | BundleNode;
 
-export type ConfigRequestNode = {|
-  id: NodeId,
-  +type: 'config_request',
-  value: ConfigRequestDesc,
-|};
-
 export type Config = {|
   id: string,
   isSource: boolean,
@@ -372,7 +375,7 @@ export type Config = {|
 |};
 
 export type DepVersionRequestNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'dep_version_request',
   value: DepVersionRequestDesc,
 |};
@@ -389,13 +392,13 @@ export type EntryRequest = {|
 |};
 
 export type EntryRequestNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'entry_request',
   value: string,
 |};
 
 export type TargetRequestNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'target_request',
   value: FilePath,
 |};
@@ -430,13 +433,13 @@ export type Bundle = {|
 |};
 
 export type BundleNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'bundle',
   value: Bundle,
 |};
 
 export type BundleGroupNode = {|
-  id: NodeId,
+  id: ContentKey,
   +type: 'bundle_group',
   value: BundleGroup,
 |};

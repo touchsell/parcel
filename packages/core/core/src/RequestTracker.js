@@ -11,7 +11,12 @@ import type {
 } from '@parcel/types';
 import type {Event, Options as WatcherOptions} from '@parcel/watcher';
 import type WorkerFarm from '@parcel/workers';
-import type {NodeId, ParcelOptions, RequestInvalidation} from './types';
+import type {
+  ContentKey,
+  NodeId,
+  ParcelOptions,
+  RequestInvalidation,
+} from './types';
 
 import invariant from 'assert';
 import nullthrows from 'nullthrows';
@@ -47,21 +52,21 @@ type SerializedRequestGraph = {|
   unpredicatableNodeIds: Set<NodeId>,
 |};
 
-type FileNode = {|id: string, +type: 'file', value: File|};
-type GlobNode = {|id: string, +type: 'glob', value: Glob|};
+type FileNode = {|id: ContentKey, +type: 'file', value: File|};
+type GlobNode = {|id: ContentKey, +type: 'glob', value: Glob|};
 type FileNameNode = {|
-  id: string,
+  id: ContentKey,
   +type: 'file_name',
   value: string,
 |};
 type EnvNode = {|
-  id: string,
+  id: ContentKey,
   +type: 'env',
   value: {|key: string, value: string | void|},
 |};
 
 type OptionNode = {|
-  id: string,
+  id: ContentKey,
   +type: 'option',
   value: {|key: string, hash: string|},
 |};
@@ -83,7 +88,7 @@ type StoredRequest = {|
 
 type InvalidateReason = number;
 type RequestNode = {|
-  id: string,
+  id: ContentKey,
   +type: 'request',
   value: StoredRequest,
   invalidateReason: InvalidateReason,
@@ -113,9 +118,9 @@ export type RunAPI = {|
   invalidateOnOptionChange: string => void,
   getInvalidations(): Array<RequestInvalidation>,
   storeResult: (result: mixed, cacheKey?: string) => void,
-  getRequestResult<T>(id: NodeId): Async<?T>,
+  getRequestResult<T>(contentKey: ContentKey): Async<?T>,
   getSubRequests(): Array<StoredRequest>,
-  canSkipSubrequest(NodeId): boolean,
+  canSkipSubrequest(ContentKey): boolean,
   runRequest: <TInput, TResult>(
     subRequest: Request<TInput, TResult>,
     opts?: RunRequestOpts,
@@ -265,7 +270,7 @@ export class RequestGraph extends ContentGraph<
 
   replaceSubrequests(
     requestNodeId: NodeId,
-    subrequestContentKeys: Array<NodeId>,
+    subrequestContentKeys: Array<ContentKey>,
   ) {
     let subrequestNodeIds = [];
     for (let key of subrequestContentKeys) {
@@ -646,14 +651,12 @@ export default class RequestTracker {
   }
 
   startRequest(request: StoredRequest): NodeId {
-    let requestNodeId;
-    if (this.graph.getNodeByContentKey(request.id) == null) {
-      let node = nodeFromRequest(request);
-      requestNodeId = this.graph.addNode(node);
-    } else {
+    let didPreviouslyExist = this.graph.hasContentKey(request.id);
+    let requestNodeId = this.graph.addNode(nodeFromRequest(request));
+
+    if (didPreviouslyExist) {
       // Clear existing invalidations for the request so that the new
       // invalidations created during the request replace the existing ones.
-      requestNodeId = this.graph.getNodeIdByContentKey(request.id);
       this.graph.clearInvalidations(requestNodeId);
     }
 
@@ -679,8 +682,8 @@ export default class RequestTracker {
     );
   }
 
-  async getRequestResult<T>(nodeId: NodeId): Async<?T> {
-    let node = nullthrows(this.graph.getNode(nodeId));
+  async getRequestResult<T>(contentKey: ContentKey): Async<?T> {
+    let node = nullthrows(this.graph.getNodeByContentKey(contentKey));
     invariant(node.type === 'request');
     if (node.value.result != undefined) {
       // $FlowFixMe
@@ -732,8 +735,11 @@ export default class RequestTracker {
     return invalidRequests;
   }
 
-  replaceSubrequests(requestNodeId: NodeId, subrequestNodeIds: Array<NodeId>) {
-    this.graph.replaceSubrequests(requestNodeId, subrequestNodeIds);
+  replaceSubrequests(
+    requestNodeId: NodeId,
+    subrequestContextKeys: Array<ContentKey>,
+  ) {
+    this.graph.replaceSubrequests(requestNodeId, subrequestContextKeys);
   }
 
   async runRequest<TInput, TResult>(
@@ -744,8 +750,8 @@ export default class RequestTracker {
     let hasValidResult = requestId != null && this.hasValidResult(requestId);
 
     if (!opts?.force && hasValidResult) {
-      // $FlowFixMe
-      return this.getRequestResult<TResult>(requestId);
+      // $FlowFixMe[incompatible-type]
+      return this.getRequestResult<TResult>(request.id);
     }
 
     let requestNodeId = this.startRequest({
@@ -763,7 +769,7 @@ export default class RequestTracker {
         api,
         farm: this.farm,
         options: this.options,
-        prevResult: await this.getRequestResult<TResult>(requestNodeId),
+        prevResult: await this.getRequestResult<TResult>(request.id),
         invalidateReason: node.invalidateReason,
       });
 
@@ -781,7 +787,7 @@ export default class RequestTracker {
 
   createAPI(
     requestId: NodeId,
-  ): {|api: RunAPI, subRequestContentKeys: Set<NodeId>|} {
+  ): {|api: RunAPI, subRequestContentKeys: Set<ContentKey>|} {
     let subRequestContentKeys = new Set();
     let invalidations = this.graph.getInvalidations(requestId);
     let api: RunAPI = {
@@ -805,7 +811,8 @@ export default class RequestTracker {
         this.storeResult(requestId, result, cacheKey);
       },
       getSubRequests: () => this.graph.getSubRequests(requestId),
-      getRequestResult: <T>(id): Async<?T> => this.getRequestResult<T>(id),
+      getRequestResult: <T>(contentKey): Async<?T> =>
+        this.getRequestResult<T>(contentKey),
       canSkipSubrequest: subRequestId => {
         let nodeId = this.graph._contentKeyToNodeId.get(subRequestId);
         if (nodeId != null && this.hasValidResult(nodeId)) {
