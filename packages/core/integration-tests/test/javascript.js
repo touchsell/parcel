@@ -16,7 +16,7 @@ import {
 } from '@parcel/test-utils';
 import {makeDeferredWithPromise} from '@parcel/utils';
 
-describe.only('javascript', function() {
+describe('javascript', function() {
   beforeEach(async () => {
     await removeDistDirectory();
   });
@@ -1080,7 +1080,7 @@ describe.only('javascript', function() {
         assets: ['worker.js'],
       },
       {
-        assets: ['lodash.js'/*, 'esmodule-helpers.js'*/],
+        assets: ['lodash.js' /*, 'esmodule-helpers.js'*/],
       },
     ]);
 
@@ -1275,7 +1275,7 @@ describe.only('javascript', function() {
     );
     assertBundles(b, [
       {
-        assets: ['c.js', 'common.js'/*, 'esmodule-helpers.js' */],
+        assets: ['c.js', 'common.js' /*, 'esmodule-helpers.js' */],
       },
       {
         name: 'b.js',
@@ -1607,7 +1607,7 @@ describe.only('javascript', function() {
 
     assertBundles(b, [
       {
-        assets: ['a.js', 'b.js', 'c.js'/*, 'esmodule-helpers.js' */],
+        assets: ['a.js', 'b.js', 'c.js' /*, 'esmodule-helpers.js' */],
       },
     ]);
 
@@ -1944,7 +1944,10 @@ describe.only('javascript', function() {
     assertBundles(b, [
       {
         name: 'browser.js',
-        assets: ['browser.js', 'browser-module.js'/*, 'esmodule-helpers.js' */],
+        assets: [
+          'browser.js',
+          'browser-module.js' /*, 'esmodule-helpers.js' */,
+        ],
       },
     ]);
 
@@ -2113,7 +2116,7 @@ describe.only('javascript', function() {
     assertBundles(b, [
       {
         name: 'main-field.js',
-        assets: ['main-field.js', 'main.js'/*, 'esmodule-helpers.js' */],
+        assets: ['main-field.js', 'main.js' /*, 'esmodule-helpers.js' */],
       },
     ]);
 
@@ -2845,7 +2848,9 @@ describe.only('javascript', function() {
 
     let jsBundle = b.getBundles()[0];
     let contents = await outputFS.readFile(jsBundle.filePath, 'utf8');
-    assert(/.then\(function\(res\) {\n.*return __importStar\(res\)/.test(contents));
+    assert(
+      /.then\(function\(res\) {\n.*return __importStar\(res\)/.test(contents),
+    );
   });
 
   it('should detect typescript style async requires in commonjs with esModuleInterop flag and arrow functions', async () => {
@@ -3155,7 +3160,7 @@ describe.only('javascript', function() {
           /* 'esmodule-helpers.js', */
         ],
       },
-      {name: 'value.js', assets: ['value.js'/*, 'esmodule-helpers.js' */]},
+      {name: 'value.js', assets: ['value.js' /*, 'esmodule-helpers.js' */]},
       {assets: ['async.js']},
     ]);
 
@@ -3261,7 +3266,7 @@ describe.only('javascript', function() {
           'JSRuntime.js',
         ],
       },
-      {assets: ['a.js', 'value.js'/*, 'esmodule-helpers.js' */]},
+      {assets: ['a.js', 'value.js' /*, 'esmodule-helpers.js' */]},
       {assets: ['b.js']},
     ]);
 
