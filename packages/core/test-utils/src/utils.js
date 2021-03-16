@@ -249,7 +249,7 @@ export function shallowEqual(
   return true;
 }
 
-type RunOpts = {require?: boolean, ...};
+type RunOpts = {require?: boolean, strict?: boolean, ...};
 
 export async function runBundles(
   bundleGraph: BundleGraph<NamedBundle>,
@@ -324,7 +324,7 @@ export async function runBundles(
     for (let b of bundles) {
       // require, parcelRequire was set up in prepare*Context
       new vm.Script(
-        // '"use strict";\n' +
+        (opts.strict ? '"use strict";\n' : '') +
         await overlayFS.readFile(nullthrows(b.filePath), 'utf8'),
         {
           filename: b.name,
