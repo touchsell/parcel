@@ -789,11 +789,11 @@ describe('javascript', function() {
             codeHighlights: [
               {
                 end: {
-                  column: 51,
+                  column: 55,
                   line: 1,
                 },
                 start: {
-                  column: 12,
+                  column: 42,
                   line: 1,
                 },
               },
@@ -907,11 +907,11 @@ describe('javascript', function() {
             codeHighlights: [
               {
                 end: {
-                  column: 51,
+                  column: 33,
                   line: 1,
                 },
                 start: {
-                  column: 12,
+                  column: 20,
                   line: 1,
                 },
               },
@@ -1043,13 +1043,13 @@ describe('javascript', function() {
           'worker-a.js',
           'JSRuntime.js',
           'bundle-url.js',
-          'esmodule-helpers.js',
+          // 'esmodule-helpers.js',
           'get-worker-url.js',
           'lodash.js',
         ],
       },
       {
-        assets: ['worker-b.js', 'lodash.js', 'esmodule-helpers.js'],
+        assets: ['worker-b.js', 'lodash.js' /*'esmodule-helpers.js'*/],
       },
     ]);
   });
@@ -1320,7 +1320,7 @@ describe('javascript', function() {
           'js-loader.js',
           'JSRuntime.js',
           'JSRuntime.js',
-          'esmodule-helpers.js',
+          // 'esmodule-helpers.js',
         ],
       },
       {
@@ -1440,7 +1440,7 @@ describe('javascript', function() {
         assets: [
           'index.js',
           'bundle-url.js',
-          'esmodule-helpers.js',
+          // 'esmodule-helpers.js',
           'JSRuntime.js',
         ],
       },
@@ -1472,7 +1472,7 @@ describe('javascript', function() {
     assertBundles(b, [
       {
         name: 'local-url.js',
-        assets: ['esmodule-helpers.js', 'local-url.js'],
+        assets: [/*'esmodule-helpers.js', */ 'local-url.js'],
       },
     ]);
 
@@ -1495,11 +1495,11 @@ describe('javascript', function() {
             codeHighlights: [
               {
                 end: {
-                  column: 54,
+                  column: 36,
                   line: 1,
                 },
                 start: {
-                  column: 16,
+                  column: 24,
                   line: 1,
                 },
               },
